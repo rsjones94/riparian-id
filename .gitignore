@@ -1,0 +1,3 @@
+#ignore the __pycache__ folder and pytest files
+**.idea/
+**venv/
