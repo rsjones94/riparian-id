@@ -30,7 +30,6 @@ def keep(nums):
     return ','.join(excludes)
 
 
-files = files[100:102]
 if not isinstance(files, list):
     files = [files]
 n_files = len(files)
@@ -93,11 +92,16 @@ for i,file in enumerate(files):
     wbt.lidar_tin_gridding(i=swappedfile, output=nreturnsname, parameter='elevation', returns='all', resolution=RESOLUTION,
                            exclude_cls=None)
 
-    enable_print()
     # timing
+    enable_print()
     intermediate2 = time.time()
-    elap = round(intermediate2-intermediate1, 2)
-    print(f'Processing time: {elap} seconds. File {i+1} of {n_files} complete.')
+    intermediate_elap = round(intermediate2-intermediate1, 2) # in seconds
+    running_time = round(intermediate2-start, 2)/60 # in minutes
+    frac_progress = (i+1)/n_files
+    estimated_total_time = round(running_time*(1/frac_progress) - running_time, 2)
+
+    print(f'Processing time: {intermediate_elap} seconds. File {i+1} of {n_files} complete. Estimated time remaining: '
+          f'{estimated_total_time} minutes')
 
 final = time.time()
 elap = round(final-start, 2)
