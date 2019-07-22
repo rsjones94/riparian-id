@@ -26,5 +26,3 @@ for ext in exts:
     os.mkdir(new_dir)
     for i, file in enumerate(all_files):
         shutil.copyfile(file, os.path.join(new_dir, str(i)+'.tif'))
-    # all_files = ','.join(all_files)
-    # wbt.mosaic(all_files, output=os.path.join(out_folder, 'mosaic'+ext))
