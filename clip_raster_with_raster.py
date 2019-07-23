@@ -6,13 +6,15 @@ from gdalconst import GA_ReadOnly
 
 def raster_clip_raster(raster_extent, raster_to_clip, raster_out, path_to_gdal=r'C:\OSGeo4W64\bin'):
     """
+    Clips a raster to the extent of another raster
+
     Args:
         raster_extent: the raster whose extent will be used to clip raster_to_clip
         raster_to_clip: the raster that will be clipped
         raster_out: the full filepath, name and extension of the output
         path_to_gdal: the filepath to your gdal bin
 
-    Returns: a raster
+    Returns: nothing
     """
 
     data = gdal.Open(raster_extent, GA_ReadOnly)
