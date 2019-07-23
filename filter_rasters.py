@@ -1,11 +1,7 @@
 import os
 
-import matplotlib.pyplot as plt
-import matplotlib as mpl
 import numpy as np
-from osgeo import gdal
 import rasterio as rio
-from rasterio.plot import show
 
 
 def num_to_filter(val):
