@@ -3,18 +3,23 @@ import os
 import gdal
 from gdalconst import GA_ReadOnly
 
-# raster with extent you with to use to clip
-raster_extent = r'D:\SkyJones\lidar\2012_tn\system2_overlap\las_products\16sbe9591\16sbe9591_allintens.tif'
 
-# raster you'll be clipping
-raster_to_clip = r'D:\SkyJones\naip\usgs\mosaic\mosaic.tif'
-# output raster location and name
-raster_out = r'D:\SkyJones\lidar\2012_tn\system2_overlap\las_products\16sbe9591\cliportho.tif'
+def raster_clip_raster(raster_extent, raster_to_clip, raster_out, path_to_gdal=r'C:\OSGeo4W64\bin'):
+    """
+    Args:
+        raster_extent: the raster whose extent will be used to clip raster_to_clip
+        raster_to_clip: the raster that will be clipped
+        raster_out: the full filepath, name and extension of the output
+        path_to_gdal: the filepath to your gdal bin
 
-data = gdal.Open(raster_extent, GA_ReadOnly)
-geoTransform = data.GetGeoTransform()
-minx = geoTransform[0]
-maxy = geoTransform[3]
-maxx = minx + geoTransform[1] * data.RasterXSize
-miny = maxy + geoTransform[5] * data.RasterYSize
-os.system(r'C:\OSGeo4W64\bin\gdal_translate -projwin ' + ' '.join([str(x) for x in [minx, maxy, maxx, miny]]) + f' -of GTiff {raster_to_clip} {raster_out}')
+    Returns: a raster
+    """
+
+    data = gdal.Open(raster_extent, GA_ReadOnly)
+    geo_transform = data.GetGeoTransform()
+    minx = geo_transform[0]
+    maxy = geo_transform[3]
+    maxx = minx + geo_transform[1] * data.RasterXSize
+    miny = maxy + geo_transform[5] * data.RasterYSize
+    os.system(os.path.join(path_to_gdal, 'gdal_translate -projwin ') + ' '.join(
+        [str(x) for x in [minx, maxy, maxx, miny]]) + f' -of GTiff {raster_to_clip} {raster_out}')
