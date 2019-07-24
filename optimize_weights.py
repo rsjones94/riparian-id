@@ -20,19 +20,19 @@ def single_objective(params_list, targets, validator):
              a perfect inversion
 
     """
-    # an objective function that deals with applying a filter to a single tile
+    """
     print('SINGLE OBJECTIVE!')
     print(f'params_list: {params_list}')
     print(f'targets: {targets}')
     print(f'validator: {validator}')
+    """
     prediction = filter_rasters(params_list, targets)
     score, con = score_prediction(prediction, validator)
-
     return score
 
 def multi_objective(params_list, extensions, parent_folder, subfolders, validator_ext):
     """
-
+    Gives a score for a filter applied to multiple tiles
 
     Args:
         params_list: see filter_rasters()
@@ -46,12 +46,15 @@ def multi_objective(params_list, extensions, parent_folder, subfolders, validato
              a perfect inversion
 
     """
+
+    """
     print('MULTI OBJECTIVE!')
     print(f'params_list: {params_list}')
     print(f'extensions: {extensions}')
     print(f'parent_folder: {parent_folder}')
     print(f'subfolders: {subfolders}')
     print(f'validator_ext: {validator_ext}')
+    """
     scores = []
     for subfolder in subfolders:
         files = [os.path.join(parent_folder, subfolder, subfolder+ext) for ext in extensions]
@@ -75,7 +78,6 @@ subfolders = os.listdir(parent)
 selected_folders = random.sample(subfolders, n_tiles)
 
 result = differential_evolution(multi_objective, bounds, args=(extensions, parent, selected_folders, validator_extension))
-
 
 
 """
