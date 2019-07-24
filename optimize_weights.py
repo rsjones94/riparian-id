@@ -77,22 +77,31 @@ def multi_objective(params_list, extensions, parent_folder, subfolders, validato
     if as_objective: # scores is just the score of each tile
         global called
         called += 1
+        print(f'num. calls: {called}')
         return np.mean(scores)
     else: # scores is a list of tuples: the score of the tile and the confusion matrix
         avg = np.mean([score[0] for score in scores])
         return avg, scores
 
+
+def interpret(extensions, params):
+    plist = params.copy()
+    plist = [plist[x:x + 3] for x in range(0, len(plist), 3)]
+
+    for ext, sub in zip(extensions,plist):
+        print(f'{ext}: {num_to_filter(sub[0]).__name__}, args {sub[1]} and {sub[2]}')
+
 """
-#### begin heuristic optimization
+#### begin dif ev optimization
 cat_bounds = (0.51, 2.49) # only allow high and low pass filters
 # input
 parent = r'D:\SkyJones\lidar\2012_tn\system2_overlap\las_products'
-n_tiles = 15
-pop_mult = 2
-max_n_iter = 10000
+n_tiles = 30
+pop_mult = 3
+max_n_iter = 150
 extensions = ['_dhm.tif', '_nreturns.tif']
 # should write a function to produce these bounds based on extensions
-bounds = [cat_bounds, (0,50), (0,0), cat_bounds, (1,4), (1,1)]
+bounds = [cat_bounds, (0,50), (0,0), cat_bounds, (1,4), (0,0)]
 validator_extension = '_valtile.tif'
 
 ## end input
@@ -102,18 +111,36 @@ selected_folders = random.sample(subfolders, n_tiles)
 
 result = differential_evolution(multi_objective, bounds,
                                 args=(extensions, parent, selected_folders, validator_extension, True),
-                                maxiter=max_n_iter, popsize=pop_mult)
+                                maxiter=max_n_iter, popsize=pop_mult, tol=0.005, recombination=0.8, mutation=(0.7,1.5))
 """
 
+#### begin brute optimization
+# input
+
+
+"""
 #### begin manual optimization
 # input
 parent = r'D:\SkyJones\lidar\2012_tn\system2_overlap\las_products'
-n_tiles = 20
-extensions = ['_dhm.tif', '_nreturns.tif']
-params = [filter_greater, 3, 0, filter_greater, 1.5, 0]
+n_tiles = 30
+extensions = ['_dhm.tif', '_nreturns.tif', '_firstintens.tif', '_dsmslope.tif']
+params = [filter_greater, 3, 0, filter_greater, 1.5, 0, filter_lesser, 50, 0, filter_greater, 20, 0]
 validator_extension = '_valtile.tif'
 
 ## end input
 subfolders = os.listdir(parent)
 selected_folders = random.sample(subfolders, n_tiles)
 score, subscores = multi_objective(params, extensions, parent, selected_folders, validator_extension, as_objective=False)
+name_pairs = zip(selected_folders, subscores)
+name_pairs = [pair for pair in name_pairs]
+name_pairs.sort(key=lambda x: x[1][0]) # sorted by lowest (best) score
+"""
+"""
+# good overall params, but very bad on this tile. Why?
+parent = r'D:\SkyJones\lidar\2012_tn\system2_overlap\las_products'
+extensions = ['_dhm.tif', '_nreturns.tif', '_firstintens.tif', '_dsmslope.tif']
+params = [filter_greater, 3, 0, filter_greater, 1.5, 0, filter_lesser, 50, 0, filter_greater, 20, 0]
+sub = '16sce0889'
+targets = [os.path.join(parent, sub, sub+ext) for ext in extensions]
+filter_rasters(params, targets, output = r'D:\SkyJones\lidar\2012_tn\system2_overlap\test\test.tif', write=True)
+"""
