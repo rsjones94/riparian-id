@@ -5,13 +5,10 @@ import rasterio as rio
 
 
 def num_to_filter(val):
-    mapper = {0: filter_all, 1: filter_greater, 2: filter_lesser, 3: filter_between, 4: filter_outside}
-    return mapper[round(val)]
-
-def filter_to_num(val):
-    mapper = {filter_all: 0, filter_greater: 1, filter_lesser: 2, filter_between: 3, filter_outside: 4}
-    return mapper[round(val)]
-
+    if isinstance(val, int) or isinstance(val, float):
+        mapper = {0: filter_all, 1: filter_greater, 2: filter_lesser, 3: filter_between, 4: filter_outside}
+        val = mapper[round(val)]
+    return val
 
 def filter_all(params_list, target):
     """
@@ -122,6 +119,9 @@ def filter_rasters(params_list, targets, output=None, write=False):
     """
 
     # first turn the params_list into sublists where each list goes with one target
+    print('FILTERING!')
+    print(f'params_list: {params_list}')
+    print(f'targets: {targets}')
     plist = params_list.copy()
     if not len(plist) % 3 == 0:
         raise Exception('params_list must be able to broken into sublists of length 3')
@@ -132,11 +132,10 @@ def filter_rasters(params_list, targets, output=None, write=False):
         print(sublist)
         if isinstance(sublist[0], int) or isinstance(sublist[0], float):
             sublist[0] = num_to_filter(sublist[0])
-
     # map the target file onto what function and parameters will be applied to it
     evaluation_dict = {target: sublist for target, sublist in zip(targets, plist)}
     # apply the functions
-    masks = [plist[0](plist[1:3], target) for target, plist in evaluation_dict.items()]
+    masks = [sublist[0](sublist[1:3], target) for target, sublist in evaluation_dict.items()]
 
     # apply the chained logical and
     all_mask = np.logical_and.reduce(masks).astype(int)

@@ -21,6 +21,10 @@ def single_objective(params_list, targets, validator):
 
     """
     # an objective function that deals with applying a filter to a single tile
+    print('SINGLE OBJECTIVE!')
+    print(f'params_list: {params_list}')
+    print(f'targets: {targets}')
+    print(f'validator: {validator}')
     prediction = filter_rasters(params_list, targets)
     score, con = score_prediction(prediction, validator)
 
@@ -43,6 +47,7 @@ def multi_objective(params_list, extensions, parent_folder, subfolders, validato
 
     """
     print('MULTI OBJECTIVE!')
+    print(f'params_list: {params_list}')
     print(f'extensions: {extensions}')
     print(f'parent_folder: {parent_folder}')
     print(f'subfolders: {subfolders}')
@@ -50,8 +55,7 @@ def multi_objective(params_list, extensions, parent_folder, subfolders, validato
     scores = []
     for subfolder in subfolders:
         files = [os.path.join(parent_folder, subfolder, subfolder+ext) for ext in extensions]
-        scores.append(single_objective(params_list, files,
-                                       os.path.join(parent_folder, subfolder, subfolder+validator_ext)))
+        scores.append(single_objective(params_list, files, os.path.join(parent_folder, subfolder, subfolder+validator_ext)))
 
     return np.mean(scores)
 
