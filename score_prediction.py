@@ -15,7 +15,7 @@ def score_prediction(prediction, validator):
         prediction: a binary raster file with 1 band or a raw numpy array representing such a file
         validator: a binary raster with 1 band or a raw numpy array representing such a file
 
-    Returns: a tuple where the first entry is a float from -1 to 1, where 1 is a perfect match and a -1 is
+    Returns: a tuple where the first entry is a float from -1 to 1, where -1 is a perfect match and a 1 is
              a perfect inversion, and the second entry is a confusion matrix
     """
     if isinstance(prediction, str):
@@ -48,7 +48,7 @@ def score_prediction(prediction, validator):
                  'tn': fracs[1],
                  'fp': fracs[2],
                  'fn': fracs[3]}
-    score = confusion['tp'] + confusion['tn'] - confusion['fp'] - confusion['fn']
+    score = -(confusion['tp'] + confusion['tn'] - confusion['fp'] - confusion['fn'])
 
     return score, confusion
 

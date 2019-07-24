@@ -16,7 +16,7 @@ def single_objective(params_list, targets, validator):
         targets: see filter_rasters()
         validator: see score_prediction()
 
-    Returns: a float from -1 to 1, where 1 indicates the prediction is a perfect match and a -1 is
+    Returns: a float from -1 to 1, where -1 indicates the prediction is a perfect match and a 1 is
              a perfect inversion
 
     """
@@ -30,6 +30,7 @@ def single_objective(params_list, targets, validator):
     score, con = score_prediction(prediction, validator)
     return score
 
+called = 0
 def multi_objective(params_list, extensions, parent_folder, subfolders, validator_ext):
     """
     Gives a score for a filter applied to multiple tiles
@@ -42,7 +43,7 @@ def multi_objective(params_list, extensions, parent_folder, subfolders, validato
         subfolders: a list of folder names containing the data for the tiles to evaluate the filter against
         validator_ext: an extension that can be used to build the filename of the validation data
 
-    Returns: a float from -1 to 1, where 1 indicates the prediction is a perfect match and a -1 is
+    Returns: a float from -1 to 1, where -1 indicates the prediction is a perfect match and a 1 is
              a perfect inversion
 
     """
@@ -58,8 +59,12 @@ def multi_objective(params_list, extensions, parent_folder, subfolders, validato
     scores = []
     for subfolder in subfolders:
         files = [os.path.join(parent_folder, subfolder, subfolder+ext) for ext in extensions]
-        scores.append(single_objective(params_list, files, os.path.join(parent_folder, subfolder, subfolder+validator_ext)))
+        scores.append(single_objective(params_list, files, os.path.join(parent_folder, subfolder,
+                                                                        subfolder+validator_ext)))
 
+    global called
+    called += 1
+    print(f'Called {called}')
     return np.mean(scores)
 
 
@@ -67,7 +72,9 @@ def multi_objective(params_list, extensions, parent_folder, subfolders, validato
 cat_bounds = (-0.49,4.49)
 # input
 parent = r'D:\SkyJones\lidar\2012_tn\system2_overlap\las_products'
-n_tiles = 10
+n_tiles = 6
+pop_mult = 1
+max_n_iter = 20000
 extensions = ['_dhm.tif', '_nreturns.tif']
 # should write a function to produce these bounds based on extensions
 bounds = [cat_bounds, (0,50), (0,50), cat_bounds, (1,8), (1,8)]
@@ -76,8 +83,13 @@ validator_extension = '_valtile.tif'
 ## end input
 subfolders = os.listdir(parent)
 selected_folders = random.sample(subfolders, n_tiles)
+# popsize = len(bounds)*pop_mult
 
-result = differential_evolution(multi_objective, bounds, args=(extensions, parent, selected_folders, validator_extension))
+result = differential_evolution(multi_objective, bounds,
+                                args=(extensions, parent, selected_folders, validator_extension),
+                                maxiter=max_n_iter, popsize=pop_mult)
+
+# started 10pm 7/23
 
 
 """
