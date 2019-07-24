@@ -6,7 +6,7 @@ from score_prediction import score_prediction
 from filter_rasters import *
 
 
-def single_objective(params_list, targets, validator):
+def single_objective(params_list, targets, validator, as_objective=True):
     """
     Gives a score for a tree cover prediction that results from applying the filter specified by params list to the
     targets. Evaluated against the validator
@@ -15,6 +15,8 @@ def single_objective(params_list, targets, validator):
         params_list: see filter_rasters()
         targets: see filter_rasters()
         validator: see score_prediction()
+        as_objective: a bool indicating if this is an objective function. If only the score is returned. Otherwise the
+                      confusion matrix is returned as well
 
     Returns: a float from -1 to 1, where -1 indicates the prediction is a perfect match and a 1 is
              a perfect inversion
@@ -28,10 +30,13 @@ def single_objective(params_list, targets, validator):
     """
     prediction = filter_rasters(params_list, targets)
     score, con = score_prediction(prediction, validator)
-    return score
+    if as_objective:
+        return score
+    else:
+        return score, con
 
 called = 0
-def multi_objective(params_list, extensions, parent_folder, subfolders, validator_ext):
+def multi_objective(params_list, extensions, parent_folder, subfolders, validator_ext, as_objective=True):
     """
     Gives a score for a filter applied to multiple tiles
 
@@ -42,6 +47,9 @@ def multi_objective(params_list, extensions, parent_folder, subfolders, validato
         parent_folder: the directory that each tile subdirectory is in
         subfolders: a list of folder names containing the data for the tiles to evaluate the filter against
         validator_ext: an extension that can be used to build the filename of the validation data
+        as_objective: a bool indicating if this is an objective function. If only the overall score is returned.
+                      else, the overall score is returned as long as a list of tuples of each tile's score and confusion
+                      matrix
 
     Returns: a float from -1 to 1, where -1 indicates the prediction is a perfect match and a 1 is
              a perfect inversion
@@ -58,26 +66,33 @@ def multi_objective(params_list, extensions, parent_folder, subfolders, validato
     """
     scores = []
     for subfolder in subfolders:
+        if not as_objective:
+            print(f'Analyzing {subfolder}')
         files = [os.path.join(parent_folder, subfolder, subfolder+ext) for ext in extensions]
-        scores.append(single_objective(params_list, files, os.path.join(parent_folder, subfolder,
-                                                                        subfolder+validator_ext)))
+        scores.append(single_objective(params_list,
+                                       files,
+                                       os.path.join(parent_folder, subfolder, subfolder+validator_ext),
+                                       as_objective))
 
-    global called
-    called += 1
-    print(f'Called {called}')
-    return np.mean(scores)
+    if as_objective: # scores is just the score of each tile
+        global called
+        called += 1
+        return np.mean(scores)
+    else: # scores is a list of tuples: the score of the tile and the confusion matrix
+        avg = np.mean([score[0] for score in scores])
+        return avg, scores
 
-
-#### begin model
-cat_bounds = (-0.49,4.49)
+"""
+#### begin heuristic optimization
+cat_bounds = (0.51, 2.49) # only allow high and low pass filters
 # input
 parent = r'D:\SkyJones\lidar\2012_tn\system2_overlap\las_products'
-n_tiles = 6
-pop_mult = 1
-max_n_iter = 20000
+n_tiles = 15
+pop_mult = 2
+max_n_iter = 10000
 extensions = ['_dhm.tif', '_nreturns.tif']
 # should write a function to produce these bounds based on extensions
-bounds = [cat_bounds, (0,50), (0,50), cat_bounds, (1,8), (1,8)]
+bounds = [cat_bounds, (0,50), (0,0), cat_bounds, (1,4), (1,1)]
 validator_extension = '_valtile.tif'
 
 ## end input
@@ -86,34 +101,19 @@ selected_folders = random.sample(subfolders, n_tiles)
 # popsize = len(bounds)*pop_mult
 
 result = differential_evolution(multi_objective, bounds,
-                                args=(extensions, parent, selected_folders, validator_extension),
+                                args=(extensions, parent, selected_folders, validator_extension, True),
                                 maxiter=max_n_iter, popsize=pop_mult)
-
-# started 10pm 7/23
-
-
 """
-p = [filter_greater, 10, 0, filter_greater, 2, 0]
-# system 1
-dhm1 = r'D:\SkyJones\lidar\2012_tn\system2_overlap\las_products\16sbe9990\16sbe9990_dhm.tif'
-nret1 = r'D:\SkyJones\lidar\2012_tn\system2_overlap\las_products\16sbe9990\16sbe9990_nreturns.tif'
-val1 = r'D:\SkyJones\lidar\2012_tn\system2_overlap\las_products\16sbe9990\16sbe9990_valtile.tif'
 
-# system 2
-dhm2 = r'D:\SkyJones\lidar\2012_tn\system2_overlap\las_products\16sbe9991\16sbe9991_dhm.tif'
-nret2 = r'D:\SkyJones\lidar\2012_tn\system2_overlap\las_products\16sbe9991\16sbe9991_nreturns.tif'
-val2 = r'D:\SkyJones\lidar\2012_tn\system2_overlap\las_products\16sbe9991\16sbe9991_valtile.tif'
-
-### scores
-s1 = single_objective(p, [dhm1, nret1], val1)
-s2 = single_objective(p, [dhm2, nret2], val2)
-
-exts = ['_dhm.tif', '_nreturns.tif']
+#### begin manual optimization
+# input
 parent = r'D:\SkyJones\lidar\2012_tn\system2_overlap\las_products'
-subfolders = ['16sbe9990', '16sbe9991']
-val_ext = '_valtile.tif'
+n_tiles = 20
+extensions = ['_dhm.tif', '_nreturns.tif']
+params = [filter_greater, 3, 0, filter_greater, 1.5, 0]
+validator_extension = '_valtile.tif'
 
-combined_score = multi_objective(p, exts, parent, subfolders, val_ext)
-
-print(s1, s2, combined_score)
-"""
+## end input
+subfolders = os.listdir(parent)
+selected_folders = random.sample(subfolders, n_tiles)
+score, subscores = multi_objective(params, extensions, parent, selected_folders, validator_extension, as_objective=False)

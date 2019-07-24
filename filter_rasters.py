@@ -145,7 +145,8 @@ def filter_rasters(params_list, targets, output=None, write=False):
 
     return all_mask
 
-""" 
+
+"""
 p1 = [filter_greater, 4, 0]
 p2 = [filter_between, 2, 3]
 t1 = r'D:\SkyJones\lidar\2012_tn\system2_overlap\16sbe9493\16sbe9493_dhm.tif'

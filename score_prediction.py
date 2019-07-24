@@ -57,8 +57,8 @@ def score_predictions(predictions, validators):
     Scores lists of predictions and validators. All rasters should have identical extents and resolutions.
 
     Args:
-        predictions: a list of binary rasters with 1 band
-        validators: a corresponding list of binary rasters with 1 band
+        predictions: a list of binary rasters with 1 band or raw numpy arrays representing such files
+        validators: a corresponding list of binary rasters with 1 band or raw numpy arrays representing such files
 
     Returns: An overall score, and a list of tuples where in each tuple the first entry is a float from -1 to 1,
              where 1 is a perfect match and a -1 is a perfect inversion, and the second entry is a confusion matrix.
