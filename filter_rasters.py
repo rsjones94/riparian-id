@@ -8,6 +8,10 @@ def num_to_filter(val):
     mapper = {0: filter_all, 1: filter_greater, 2: filter_lesser, 3: filter_between, 4: filter_outside}
     return mapper[round(val)]
 
+def filter_to_num(val):
+    mapper = {filter_all: 0, filter_greater: 1, filter_lesser: 2, filter_between: 3, filter_outside: 4}
+    return mapper[round(val)]
+
 
 def filter_all(params_list, target):
     """
@@ -97,7 +101,7 @@ def filter_outside(params_list, target):
     return mask.astype(int)
 
 
-def filter_rasters(params_list, targets, output):
+def filter_rasters(params_list, targets, output=None, write=False):
     """
     Creates an output raster that is the result of a chain of logical ANDS of various raster masks created by applying
     filters to target rasters. All of the rasters should have the same extent and resolution and should have one band.
@@ -114,23 +118,25 @@ def filter_rasters(params_list, targets, output):
                  the first entry in targets, the next three are applied to the second entry, and so on
         output: the location, name and extension of the output raster
 
-    Returns: nothing
+    Returns: a numpy array where 1s represent a cell that passed all filters and 0s elsewhere
     """
 
     # first turn the params_list into sublists where each list goes with one target
-    if not len(params_list) % 3 == 0:
+    plist = params_list.copy()
+    if not len(plist) % 3 == 0:
         raise Exception('params_list must be able to broken into sublists of length 3')
-    if not len(params_list) == len(targets) * 3:
+    if not len(plist) == len(targets) * 3:
         raise Exception('three parameters required per target')
-    params_list = [params_list[x:x + 3] for x in range(0, len(params_list), 3)]
-    for sublist in params_list:
+    plist = [plist[x:x + 3] for x in range(0, len(plist), 3)] # break plist into sublists of len 3
+    for sublist in plist:
+        print(sublist)
         if isinstance(sublist[0], int) or isinstance(sublist[0], float):
             sublist[0] = num_to_filter(sublist[0])
 
     # map the target file onto what function and parameters will be applied to it
-    evaluation_dict = {target: sublist for target, sublist in zip(targets, params_list)}
+    evaluation_dict = {target: sublist for target, sublist in zip(targets, plist)}
     # apply the functions
-    masks = [params_list[0](params_list[1:3], target) for target, params_list in evaluation_dict.items()]
+    masks = [plist[0](plist[1:3], target) for target, plist in evaluation_dict.items()]
 
     # apply the chained logical and
     all_mask = np.logical_and.reduce(masks).astype(int)
@@ -139,11 +145,14 @@ def filter_rasters(params_list, targets, output):
     with rio.open(os.path.join(targets[0]), 'r') as src:
         metadata = src.profile
 
-    metadata['dtype'] = str(all_mask.dtype)
-    with rio.open(output, 'w', **metadata) as dst:
-        dst.write(all_mask, 1)
+    if write:
+        metadata['dtype'] = str(all_mask.dtype)
+        with rio.open(output, 'w', **metadata) as dst:
+            dst.write(all_mask, 1)
 
-"""
+    return all_mask
+
+""" 
 p1 = [filter_greater, 4, 0]
 p2 = [filter_between, 2, 3]
 t1 = r'D:\SkyJones\lidar\2012_tn\system2_overlap\16sbe9493\16sbe9493_dhm.tif'

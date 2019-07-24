@@ -2,7 +2,6 @@ import os
 
 import numpy as np
 import rasterio as rio
-import pandas as pd
 
 pred = r'D:\SkyJones\lidar\2012_tn\system2_overlap\16sbe9493\FILTERED.tif'
 val = r'D:\SkyJones\lidar\2012_tn\system2_overlap\16sbe9493\16sbe9493_naipcover.tif'
@@ -13,17 +12,23 @@ def score_prediction(prediction, validator):
     binary raster (the validator). The rasters must have the same extent and resolution.
 
     Args:
-        prediction: a binary raster with 1 band
-        validator: a binary raster with 1 band
+        prediction: a binary raster file with 1 band or a raw numpy array representing such a file
+        validator: a binary raster with 1 band or a raw numpy array representing such a file
 
     Returns: a tuple where the first entry is a float from -1 to 1, where 1 is a perfect match and a -1 is
              a perfect inversion, and the second entry is a confusion matrix
     """
-    with rio.open(os.path.join(prediction), 'r') as src:
-        prediction_data = src.read(1)
-        metadata = src.profile
-    with rio.open(os.path.join(validator), 'r') as src:
-        validator_data = src.read(1)
+    if isinstance(prediction, str):
+        with rio.open(os.path.join(prediction), 'r') as src:
+            prediction_data = src.read(1)
+    else:
+        prediction_data = prediction
+
+    if isinstance(validator, str):
+        with rio.open(os.path.join(validator), 'r') as src:
+            validator_data = src.read(1)
+    else:
+        validator_data = validator
 
     true_positives = np.logical_and(prediction_data == 1, validator_data == 1).astype(int)
     true_negatives = np.logical_and(prediction_data == 0, validator_data == 0).astype(int)
@@ -47,5 +52,24 @@ def score_prediction(prediction, validator):
 
     return score, confusion
 
+def score_predictions(predictions, validators):
+    """
+    Scores lists of predictions and validators. All rasters should have identical extents and resolutions.
 
-s,c = score_prediction(pred, val)
+    Args:
+        predictions: a list of binary rasters with 1 band
+        validators: a corresponding list of binary rasters with 1 band
+
+    Returns: An overall score, and a list of tuples where in each tuple the first entry is a float from -1 to 1,
+             where 1 is a perfect match and a -1 is a perfect inversion, and the second entry is a confusion matrix.
+             Each tuple corresponds to a prediction-validator pair.
+    """
+
+    scores_tups = [score_prediction(prediction, validator) for
+                   prediction, validator in zip(predictions, validators)]
+
+    overall = np.mean([tup[0] for tup in score_prediction()])
+
+    return overall, scores_tups
+
+# s,c = score_prediction(pred, val)
