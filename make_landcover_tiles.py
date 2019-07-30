@@ -12,7 +12,7 @@ for i, folder in enumerate(folders):
     working_dir = os.path.join(main_dir, folder)
 
     raster_clip_raster(os.path.join(working_dir, folder+'_allintens.tif'),
-                       r'D:\SkyJones\naip\usgs\landcover\landcover_TEST.tif',
+                       r'D:\SkyJones\naip\usgs\landcover\sieved_500_cleanv1.tif',
                        os.path.join(working_dir, folder+'_valtile.tif'))
 
     intermediate2 = time.time()

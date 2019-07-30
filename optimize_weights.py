@@ -118,13 +118,13 @@ result = differential_evolution(multi_objective, bounds,
 # input
 
 
-"""
+
 #### begin manual optimization
 # input
 parent = r'D:\SkyJones\lidar\2012_tn\system2_overlap\las_products'
 n_tiles = 30
-extensions = ['_dhm.tif', '_nreturns.tif', '_firstintens.tif', '_dsmslope.tif']
-params = [filter_greater, 3, 0, filter_greater, 1.5, 0, filter_lesser, 50, 0, filter_greater, 20, 0]
+extensions = ['_dhm.tif', '_nreturns.tif']
+params = [filter_greater, 0, 0, filter_greater, 1.178, 0]
 validator_extension = '_valtile.tif'
 
 ## end input
@@ -134,7 +134,7 @@ score, subscores = multi_objective(params, extensions, parent, selected_folders,
 name_pairs = zip(selected_folders, subscores)
 name_pairs = [pair for pair in name_pairs]
 name_pairs.sort(key=lambda x: x[1][0]) # sorted by lowest (best) score
-"""
+
 """
 # good overall params, but very bad on this tile. Why?
 parent = r'D:\SkyJones\lidar\2012_tn\system2_overlap\las_products'
