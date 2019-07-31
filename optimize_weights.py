@@ -1,6 +1,7 @@
 import os, time, random
 
-from scipy.optimize import differential_evolution
+from matplotlib import pyplot as plt
+from scipy.optimize import differential_evolution, brute
 
 from score_prediction import score_prediction
 from filter_rasters import *
@@ -91,6 +92,36 @@ def interpret(extensions, params):
     for ext, sub in zip(extensions,plist):
         print(f'{ext}: {num_to_filter(sub[0]).__name__}, args {sub[1]} and {sub[2]}')
 
+
+def extract_param(res, levels):
+    """
+    Takes res and extracts the level specified keeping all other vector entries invariant
+
+    Args:
+        res: the res object
+        levels: a vector where each entry corresponds to a level of res. If the entry is an integer, that level is
+                held invariant at the value of the index specified. If 'vary', that level is varied. The length
+                should be one short of the sublist lengths
+
+    Returns:
+        a tuple of lists where the first lis is a list of the varies parameter and the second is a list of the
+        values of the objective function
+    """
+    vary_level = levels.index('vary')
+    vary_length = res.shape[vary_level]
+    vary_range = range(0,vary_length)
+    slicer = []
+    for i, val in enumerate(levels):
+        if i == vary_level:
+            slicer.append(vary_range)
+        else:
+            slicer.append(val)
+    sublists = res[slicer]
+    vary_vals = [sublist[vary_level] for sublist in sublists]
+    obj_vals = [sublist[-1] for sublist in sublists]
+    return vary_vals, obj_vals
+
+
 """
 #### begin dif ev optimization
 cat_bounds = (0.51, 2.49) # only allow high and low pass filters
@@ -116,9 +147,30 @@ result = differential_evolution(multi_objective, bounds,
 
 #### begin brute optimization
 # input
+parent = r'D:\SkyJones\lidar\2012_tn\system2_overlap\las_products'
+n_tiles = 50
+extensions = ['_dhm.tif', '_nreturns.tif']
+# should write a function to produce these bounds based on extensions
+ranges = [(1,1), slice(0,25,.5), (0,0), (1,1), slice(1,2.6,.2), (0,0)]
+validator_extension = '_valtile.tif'
 
+## end input
+subfolders = os.listdir(parent)
+selected_folders = random.sample(subfolders, n_tiles)
+# popsize = len(bounds)*pop_mult
 
+result = brute(func=multi_objective, ranges=ranges, Ns=1,
+               args=(extensions, parent, selected_folders, validator_extension, True),
+               full_output=True,
+               finish=None)
 
+res = np.stack([*result[2], result[3]], -1)
+
+# to_plot = extract_param(res, [0, 'vary', 0])
+# plt.plot(to_plot[0], to_plot[1])
+# plt.show()
+
+"""
 #### begin manual optimization
 # input
 parent = r'D:\SkyJones\lidar\2012_tn\system2_overlap\las_products'
@@ -134,6 +186,7 @@ score, subscores = multi_objective(params, extensions, parent, selected_folders,
 name_pairs = zip(selected_folders, subscores)
 name_pairs = [pair for pair in name_pairs]
 name_pairs.sort(key=lambda x: x[1][0]) # sorted by lowest (best) score
+"""
 
 """
 # good overall params, but very bad on this tile. Why?
