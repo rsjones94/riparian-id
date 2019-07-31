@@ -89,8 +89,48 @@ def interpret(extensions, params):
     plist = params.copy()
     plist = [plist[x:x + 3] for x in range(0, len(plist), 3)]
 
+    prints = []
     for ext, sub in zip(extensions,plist):
-        print(f'{ext}: {num_to_filter(sub[0]).__name__}, args {sub[1]} and {sub[2]}')
+        out = f'{ext}: {num_to_filter(sub[0]).__name__}, args {sub[1]} and {sub[2]}'
+        print(out)
+        prints.append(out)
+    return prints
+
+
+def extracted_title(res, levels, extensions):
+    """
+    Makes a title given a res object and the levels
+
+    Args:
+        res: the res object
+        levels: a vector where each entry corresponds to a level of res. If the entry is an integer, that level is
+                held invariant at the value of the index specified. If 'vary', that level is varied. The length
+                should be one short of the sublist lengths
+
+    Returns:
+        a str
+
+    """
+    vary_level = levels.index('vary')
+    vary_length = res.shape[vary_level]
+    vary_range = range(0,vary_length)
+    slicer = []
+    for i, val in enumerate(levels):
+        if i == vary_level:
+            slicer.append(vary_range)
+        else:
+            slicer.append(val)
+    sublists = res[slicer]
+
+    l1 = sublists[0][:-1]
+    initial = interpret(extensions, l1)
+    initial = '\n'.join(' '.join(sub) for sub in initial)
+
+    varying_arg = vary_level % 3
+    varying_ext = extensions[int(np.floor(vary_level/3))]
+    ex = f'{varying_ext}, arg {varying_arg}'
+
+    return initial, ex
 
 
 def extract_param(res, levels):
@@ -166,9 +206,14 @@ result = brute(func=multi_objective, ranges=ranges, Ns=1,
 
 res = np.stack([*result[2], result[3]], -1)
 
-# to_plot = extract_param(res, [0, 'vary', 0])
-# plt.plot(to_plot[0], to_plot[1])
-# plt.show()
+to_plt = [0, 'vary', 0, 0, 0, 0]
+title, ex = extracted_title(res, to_plt, extensions)
+extracted = extract_param(res, to_plt)
+plt.plot(extracted[0], extracted[1])
+plt.title(title)
+plt.xlabel(ex)
+plt.ylabel('objective')
+plt.show()
 
 """
 #### begin manual optimization
