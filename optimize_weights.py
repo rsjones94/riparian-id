@@ -206,14 +206,16 @@ result = brute(func=multi_objective, ranges=ranges, Ns=1,
 
 res = np.stack([*result[2], result[3]], -1)
 
-to_plt = [0, 'vary', 0, 0, 0, 0]
-title, ex = extracted_title(res, to_plt, extensions)
-extracted = extract_param(res, to_plt)
-plt.plot(extracted[0], extracted[1])
-plt.title(title)
-plt.xlabel(ex)
-plt.ylabel('objective')
-plt.show()
+plt_varies = ([0, 'vary', 0, 0, 0, 0], [0, 0, 0, 0, 'vary', 0])
+for to_plt in plt_varies:
+    title, ex = extracted_title(res, to_plt, extensions)
+    extracted = extract_param(res, to_plt)
+    plt.figure()
+    plt.plot(extracted[0], extracted[1])
+    plt.title(title)
+    plt.xlabel(ex)
+    plt.ylabel('objective')
+    plt.show()
 
 """
 #### begin manual optimization
