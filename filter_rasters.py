@@ -106,7 +106,7 @@ def filter_rasters(params_list, targets, output=None, write=False):
     Args:
         params_list: a list of parameters 3 entries for every target. The first parameter is the filter, a function
                 (filter_all, filter_greater, filter_less, filter_between, filter_outside), the second is the first
-                filter value and the thirdis the second filter value
+                filter value and the third is the second filter value
                 (only is used when the type of filter is 'between' or outside'). If the filter type is a number,
                 it will be coerced to an integer and then mapped
                 0:filter_all, 1:filter_greater, 2:filter_lesser, 3:filter_between, 4:filter_outside.
@@ -114,6 +114,7 @@ def filter_rasters(params_list, targets, output=None, write=False):
         targets: a list of rasters for the filters to be applied to. The first three parameters in param are applied to
                  the first entry in targets, the next three are applied to the second entry, and so on
         output: the location, name and extension of the output raster
+        write: a boolean indicating if the output should be written to a file
 
     Returns: a numpy array where 1s represent a cell that passed all filters and 0s elsewhere
     """

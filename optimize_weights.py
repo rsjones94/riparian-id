@@ -191,7 +191,7 @@ parent = r'D:\SkyJones\lidar\2012_tn\system2_overlap\las_products'
 n_tiles = 50
 extensions = ['_dhm.tif', '_nreturns.tif']
 # should write a function to produce these bounds based on extensions
-ranges = [(1,1), slice(0,25,.5), (0,0), (1,1), slice(1,2.6,.2), (0,0)]
+ranges = [(1,1), slice(0,5,.1), (0,0), (1,1), slice(1,2.05,.05), (0,0)]
 validator_extension = '_valtile.tif'
 
 ## end input
