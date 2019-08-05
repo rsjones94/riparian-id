@@ -1,3 +1,7 @@
+"""
+This script just extracts the date header from LAS files in a folder
+"""
+
 import os
 from collections import Counter
 from random import randint

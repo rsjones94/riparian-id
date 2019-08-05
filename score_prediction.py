@@ -3,8 +3,6 @@ import os
 import numpy as np
 import rasterio as rio
 
-pred = r'D:\SkyJones\lidar\2012_tn\system2_overlap\16sbe9493\FILTERED.tif'
-val = r'D:\SkyJones\lidar\2012_tn\system2_overlap\16sbe9493\16sbe9493_naipcover.tif'
 
 def score_prediction(prediction, validator):
     """
@@ -71,5 +69,3 @@ def score_predictions(predictions, validators):
     overall = np.mean([tup[0] for tup in score_prediction()])
 
     return overall, scores_tups
-
-# s,c = score_prediction(pred, val)

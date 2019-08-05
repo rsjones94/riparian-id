@@ -1,3 +1,8 @@
+"""
+This script was used to move validation tiles out of a subfolder into the parent
+folder and then delete the empty subfolder
+"""
+
 import os, shutil
 
 parent = r'D:\SkyJones\lidar\2012_tn\system2_overlap\las_products'
@@ -19,4 +24,3 @@ for i, sub in enumerate(subs):
 
     shutil.rmtree(os.path.join(parent, sub, 'cover_tile'))
     print(i)
-
