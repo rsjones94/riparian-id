@@ -6,20 +6,34 @@ from scipy.optimize import differential_evolution, brute
 from optimization_helpers import *
 from filter_rasters import *
 
-"""
+
 random.seed(20)
 
 filter1 = [filter_greater, 1.2, 0]
-extensions = ['_nreturns.tif']
+filter2 = [filter_greater, 3, 0]
+filter3 = [filter_greater, 1.2, 0, filter_greater, 3, 0]
+
+extension1 = ['_nreturns.tif']
+extension2 = ['_dhm.tif']
+extension3 = ['_nreturns.tif','_dhm.tif']
+
+out1 = r'D:\SkyJones\lidar\2012_tn\system2_overlap\example_filters\nreturn_1p2'
+out2 = r'D:\SkyJones\lidar\2012_tn\system2_overlap\example_filters\dhm_3'
+out3 = r'D:\SkyJones\lidar\2012_tn\system2_overlap\example_filters\combined'
+
+filters = [filter1, filter2, filter3]
+extensions = [extension1, extension2, extension3]
+outs = [out1, out2, out3]
+
+n = 10
 parent = r'D:\SkyJones\lidar\2012_tn\system2_overlap\las_products'
 all_subs = os.listdir(parent)
-n = 1
-out_folder = r'D:\SkyJones\lidar\2012_tn\system2_overlap\example_filters'
-
 sub_folders = random.sample(all_subs, n)
-demonstrate_filter(filter1, extensions, parent, sub_folders, out_folder)
-"""
+for fil, ext, o in zip(filters, extensions, outs):
+    demonstrate_filter(fil, ext, parent, sub_folders, o)
 
+
+"""
 #### begin dif ev optimization
 cat_bounds = (0.51, 2.49) # only allow high and low pass filters
 # input
@@ -44,6 +58,7 @@ result = differential_evolution(multi_objective, bounds,
                                 args=(extensions, parent, selected_folders, validator_extension, True),
                                 maxiter=max_n_iter, popsize=pop_mult, tol=0.005, recombination=0.8, mutation=(0.7,1.5))
 result_inter = interpret(extensions, result.x)
+"""
 
 """
 #### begin brute optimization
