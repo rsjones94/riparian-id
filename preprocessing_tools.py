@@ -201,4 +201,3 @@ def mosaic_sub_folders(parent_folder, sub_folders=None):
         output = os.path.join(parent_folder, 'mosaic_' + folder + '.tif')
         with rasterio.open(output, "w", **out_meta) as dest:
             dest.write(mosaic)
-

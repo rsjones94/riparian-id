@@ -10,6 +10,7 @@ def num_to_filter(val):
         val = mapper[round(val)]
     return val
 
+
 def filter_all(params_list, target):
     """
     Makes a mask that is 1 for every cell in the target raster
@@ -147,15 +148,23 @@ def filter_rasters(params_list, targets, output=None, write=False):
     return all_mask
 
 
-"""
-p1 = [filter_greater, 4, 0]
-p2 = [filter_between, 2, 3]
-t1 = r'D:\SkyJones\lidar\2012_tn\system2_overlap\16sbe9493\16sbe9493_dhm.tif'
-t2 = r'D:\SkyJones\lidar\2012_tn\system2_overlap\16sbe9493\16sbe9493_nreturns.tif'
+def demonstrate_filter(params_list, extensions, parent, sub_folders, out_folder):
+    """
+    Applies a filter combo to a number of different tile folders
 
-p1.extend(p2)
-targets = [t1, t2]
-output = r'D:\SkyJones\lidar\2012_tn\system2_overlap\16sbe9493\FILTERED.tif'
+    Args:
+        params_list: A vector of filtering parameters
+        extensions: a list of extensions present in each folder that correspond to params
+                    len(extensions) must be len(params)/3 and be an integer
+        parent: the parent folder of the sub_folders
+        sub_folders: a list of folders containing the rasters to be filtered
+        out_folder: the folder where the output will be written to
 
-filter_rasters(p1, targets, output)
-"""
+    Returns: None
+
+    """
+
+    for f in sub_folders:
+        targets = [os.path.join(parent, f, f+ext) for ext in extensions]
+        out_name = os.path.join(out_folder, f+'_fil.tif')
+        filter_rasters(params_list, targets, output=out_name, write=True)

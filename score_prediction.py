@@ -50,6 +50,7 @@ def score_prediction(prediction, validator):
 
     return score, confusion
 
+
 def score_predictions(predictions, validators):
     """
     Scores lists of predictions and validators. All rasters should have identical extents and resolutions.

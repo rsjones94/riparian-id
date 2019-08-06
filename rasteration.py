@@ -4,7 +4,7 @@ import sys
 
 import whitebox
 
-from tools import create_swapped_las
+from preprocessing_tools import create_swapped_las
 
 
 wbt = whitebox.WhiteboxTools()

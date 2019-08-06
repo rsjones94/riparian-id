@@ -23,7 +23,6 @@ for i,file in enumerate(files):
         dyer_skip += 1
 dyer_counts = Counter(dates)
 
-
 os.chdir(r'D:\sky_laz\Gibson_laz')
 files = os.listdir()
 dates = []
