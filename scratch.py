@@ -7,6 +7,7 @@ from optimization_helpers import *
 from filter_rasters import *
 
 
+### sample output
 random.seed(20)
 
 filter1 = [filter_greater, 1.2, 0]
@@ -32,7 +33,7 @@ sub_folders = random.sample(all_subs, n)
 for fil, ext, o in zip(filters, extensions, outs):
     demonstrate_filter(fil, ext, parent, sub_folders, o)
 
-
+### optimization
 """
 #### begin dif ev optimization
 cat_bounds = (0.51, 2.49) # only allow high and low pass filters
