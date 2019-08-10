@@ -1,8 +1,10 @@
 import os
 import time
 import sys
+from copy import copy
 
 import whitebox
+import laspy
 
 from preprocessing_tools import create_swapped_las
 
@@ -26,8 +28,7 @@ def keep(nums):
     return ','.join(excludes)
 
 
-def rasteration(data_folder, products_folder, resolution=1,
-                lbl=r'C:\Users\rj3h\Desktop\LAStools\bin'):
+def rasteration(data_folder, products_folder, resolution=1, remove_buildings=True):
     """
     Takes every las file in the data_folder and creates 9 raster products from it (and
     a swapped xyrz las file).
@@ -38,6 +39,8 @@ def rasteration(data_folder, products_folder, resolution=1,
         products_folder: the directory to write the products to
         resolution: the resolution of the products to be written
         lbl: the path to the lastools bin location
+        remove_buildings: a boolean indicating if buildings should not be included in the dsm (and dhm) assuming
+                          that they are classified in the las file
     Returns: None
 
     """
@@ -52,12 +55,17 @@ def rasteration(data_folder, products_folder, resolution=1,
     for i,file in enumerate(files):
         intermediate1 = time.time()
         filename = os.path.join(data_folder, file)
-        new_folder = os.path.join(products_folder, file)[:-4]  # sans .lass
+        new_folder = os.path.join(products_folder, file)[:-4]  # sans .las
         os.mkdir(new_folder)
         outname = os.path.join(new_folder, file)[:-4]  # sans .las
 
         print(f'Working on {file}')
         block_print()  # wbt has EXTREMELY obnoxious printouts
+
+        # use laspy to store the return number in the user_data field
+        in_file = laspy.file.File(filename, mode="rw")
+        in_file.user_data = copy(in_file.return_num)
+        in_file.close()
 
         # make the digital elevation model (trees, etc. removed)
         # only keep ground road water
@@ -66,10 +74,14 @@ def rasteration(data_folder, products_folder, resolution=1,
                                exclude_cls=keep([2,9,11]))
 
         # make the digital surface model
-        # keep everything except noise and wires
+        # keep everything except noise and wires and maybe buildings
         dsmname = outname+'_dsm.tif'
+        if remove_buildings:
+            cls = '6,7,13,14,18'
+        else:
+            cls = '7,13,14,18'
         wbt.lidar_tin_gridding(i=filename, output=dsmname, parameter='elevation', returns='first', resolution=resolution,
-                               exclude_cls='7,13,14,18')
+                               exclude_cls=cls)
 
         # make the digital height model
         dhmname = outname+'_dhm.tif'
@@ -99,14 +111,9 @@ def rasteration(data_folder, products_folder, resolution=1,
         firstintensslopename = outname + '_firstintensslope.tif'
         wbt.slope(firstintensname,firstintensslopename)
 
-        # finally, we'll make a swapped .las file so we can get a raster of the avg number of returns
-        """
-        NOTE: This is no longer how I do this. If running this again, modify this code bit
-        """
-        create_swapped_las(directory=data_folder, file=file, target_folder=new_folder, lastools_bin_location=lbl)
-        nreturnsname = outname+'_nreturns.tif'
-        swappedfile = os.path.join(new_folder, 'xynz_swap.las')
-        wbt.lidar_tin_gridding(i=swappedfile, output=nreturnsname, parameter='elevation', returns='all', resolution=resolution,
+        # make a tif of the avg number of returns in a cell
+        nreturnsname = outname + '_nreturns.tif'
+        wbt.lidar_tin_gridding(i=filename, output=nreturnsname, parameter='user data', returns='last', resolution=resolution,
                                exclude_cls='7,13,14,18')
 
         # timing

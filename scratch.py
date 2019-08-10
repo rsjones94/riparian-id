@@ -1,6 +1,7 @@
 import random
 import os
 from copy import copy
+from shutil import copyfile
 
 from matplotlib import pyplot as plt
 from scipy.optimize import differential_evolution, brute
@@ -9,8 +10,26 @@ import laspy
 from optimization_helpers import *
 from filter_rasters import *
 from preprocessing_tools import *
+from rasteration import rasteration
 
+par = r'D:\SkyJones\entropy_veg\lidar\las'
+tar = r'D:\SkyJones\entropy_veg\lidar\las_products'
+rasteration(par,tar)
 
+"""
+# move nreturns files
+par = r'D:\SkyJones\gen_veg\sys2_analysis\lidar\2012_tn\system2_overlap\nret'
+big_dest = r'D:\SkyJones\gen_veg\sys2_analysis\lidar\2012_tn\system2_overlap\las_products'
+files = os.listdir(par)
+for i,file in enumerate(files):
+    print(i,file)
+    src = os.path.join(par,file)
+    dst = os.path.join(big_dest,file[:-13],file)
+    # os.remove(dst)
+    copyfile(src, dst)
+"""
+
+"""
 # generate new _nreturn.las tiles
 par = r'D:\SkyJones\gen_veg\sys2_analysis\lidar\2012_tn\system2_overlap\overlap_las'
 new = r'D:\SkyJones\gen_veg\sys2_analysis\lidar\2012_tn\system2_overlap\las_products'
@@ -26,7 +45,7 @@ for i,file in enumerate(files):
                            returns='last',
                            resolution=1,
                            exclude_cls='7,13,14,18')
-
+"""
 
 """
 # use the user_data field to store return number data
