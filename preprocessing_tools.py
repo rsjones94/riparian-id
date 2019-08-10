@@ -32,7 +32,7 @@ def create_swapped_las(directory, file, target_folder,
     """
     Creates a .las file with the x and n values swapped
     The output name is ALWAYS xynz_swap.las. The output file will only retain
-    the x, y, n and z fields (and z and n are swapped)
+    the x, y, r and z fields (and z and r are swapped)
 
     Args:
         directory: The directory that contains the file
@@ -46,14 +46,14 @@ def create_swapped_las(directory, file, target_folder,
 
     las2txt = os.path.join(lastools_bin_location, 'las2txt')
     full_file = os.path.join(directory, file)
-    command = r'-parse xynz -o'
-    out_name = os.path.join(target_folder, 'xyzn_orig.txt')
+    command = r'-parse xyrz -o'
+    out_name = os.path.join(target_folder, 'xyzr_orig.txt')
     convert = las2txt+' '+full_file+' '+' '+command+' '+out_name
     os.system(convert)
 
     txt2las = os.path.join(lastools_bin_location, 'txt2las')
-    swap_command = r'-parse xyzn -o'
-    swap_out_name = os.path.join(target_folder, 'xynz_swap.las')
+    swap_command = r'-parse xyzr -o'
+    swap_out_name = os.path.join(target_folder, 'xyrz_swap.las')
     swap = txt2las+' '+out_name+' '+' '+swap_command+' '+swap_out_name
     os.system(swap)
     os.remove(out_name)

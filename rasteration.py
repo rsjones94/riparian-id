@@ -30,7 +30,7 @@ def rasteration(data_folder, products_folder, resolution=1,
                 lbl=r'C:\Users\rj3h\Desktop\LAStools\bin'):
     """
     Takes every las file in the data_folder and creates 9 raster products from it (and
-    a swapped xynz las file).
+    a swapped xyrz las file).
     These products are each put in their own subfolder.
 
     Args:
@@ -100,11 +100,14 @@ def rasteration(data_folder, products_folder, resolution=1,
         wbt.slope(firstintensname,firstintensslopename)
 
         # finally, we'll make a swapped .las file so we can get a raster of the avg number of returns
+        """
+        NOTE: This is no longer how I do this. If running this again, modify this code bit
+        """
         create_swapped_las(directory=data_folder, file=file, target_folder=new_folder, lastools_bin_location=lbl)
         nreturnsname = outname+'_nreturns.tif'
         swappedfile = os.path.join(new_folder, 'xynz_swap.las')
         wbt.lidar_tin_gridding(i=swappedfile, output=nreturnsname, parameter='elevation', returns='all', resolution=resolution,
-                               exclude_cls=None)
+                               exclude_cls='7,13,14,18')
 
         # timing
         enable_print()

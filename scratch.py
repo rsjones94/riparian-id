@@ -1,12 +1,46 @@
 import random
+import os
+from copy import copy
 
 from matplotlib import pyplot as plt
 from scipy.optimize import differential_evolution, brute
+import laspy
 
 from optimization_helpers import *
 from filter_rasters import *
+from preprocessing_tools import *
 
 
+# generate new _nreturn.las tiles
+par = r'D:\SkyJones\gen_veg\sys2_analysis\lidar\2012_tn\system2_overlap\overlap_las'
+new = r'D:\SkyJones\gen_veg\sys2_analysis\lidar\2012_tn\system2_overlap\las_products'
+files = os.listdir(par)
+for i,file in enumerate(files):
+    print(i,file)
+    full = os.path.join(par,file)
+    nreturnsname = file[:-4] + '_nreturns.tif'
+    nreturns_file = os.path.join(new, nreturnsname)
+    wbt.lidar_tin_gridding(i=full,
+                           output=nreturns_file,
+                           parameter='user data',
+                           returns='last',
+                           resolution=1,
+                           exclude_cls='7,13,14,18')
+
+
+"""
+# use the user_data field to store return number data
+par = r'D:\SkyJones\gen_veg\sys2_analysis\lidar\2012_tn\system2_overlap\overlap_las'
+files = os.listdir(par)
+for i,file in enumerate(files):
+    full = os.path.join(par,file)
+    print(i,file)
+    in_file = laspy.file.File(full, mode="rw")
+    in_file.user_data = copy(in_file.return_num)
+    in_file.close()
+"""
+
+"""
 ### sample output
 random.seed(20)
 
@@ -32,6 +66,7 @@ all_subs = os.listdir(parent)
 sub_folders = random.sample(all_subs, n)
 for fil, ext, o in zip(filters, extensions, outs):
     demonstrate_filter(fil, ext, parent, sub_folders, o)
+"""
 
 ### optimization
 """
