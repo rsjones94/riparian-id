@@ -87,6 +87,8 @@ def rasteration(data_folder, products_folder, resolution=1, remove_buildings=Tru
         dhmname = outname+'_dhm.tif'
         wbt.subtract(dsmname, demname, dhmname)
 
+        # make an inverse digital height model
+
         # avg intensity (all returns)
         # keep everything except noise and wires
         allintensname = outname+'_allintens.tif'
