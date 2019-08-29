@@ -20,8 +20,8 @@ image_gray = io.imread(im_path)
 image_gray[image_gray > 500] = 0
 image_gray[image_gray < 3] = 0
 
-#image_gray = image_gray[2500:, 500:2000]
-image_gray = image_gray[500:2000, 4500:6000]
+image_gray = image_gray[2500:, 500:2000]
+#image_gray = image_gray[500:2000, 4500:6000]
 #image_gray = image_gray[3100:3500, 1100:1500]
 
 io.imshow(image_gray)
