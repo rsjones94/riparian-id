@@ -10,11 +10,30 @@ import laspy
 from optimization_helpers import *
 from filter_rasters import *
 from preprocessing_tools import *
-from rasteration import rasteration
+from rasteration import *
 
-par = r'D:\SkyJones\entropy_veg\lidar\las'
-tar = r'D:\SkyJones\entropy_veg\lidar\las_products'
-rasteration(par,tar)
+par = r'D:\SkyJones\gen_model\study_areas'
+folders = os.listdir(par)
+total_n = len(folders)
+for i,sub in enumerate(folders):
+    print(f'\n\n!!!!!!!!!!!!!!!\n Working on {sub}, {i+1} of {total_n} \n!!!!!!!!!!!!!!!\n\n')
+    working = os.path.join(par,sub)
+    lidar_folder = os.path.join(working,'LiDAR')
+
+    possible = os.listdir(lidar_folder)
+    year_folder = [i for i in possible if '20' in i]
+    assert len(year_folder) == 1
+    year_folder = year_folder[0]
+    data = os.path.join(lidar_folder,year_folder,'las')
+    rasteration_target = os.path.join(working,'study_LiDAR','products','tiled')
+    rasteration(data, rasteration_target, resolution=1)
+    copy_target = os.path.join(working,'study_LiDAR','products','mosaic')
+    copy_tiles(rasteration_target, copy_target)
+
+    #print(data)
+    #print(rasteration_target)
+    #print(copy_target)
+
 
 """
 # move nreturns files

@@ -2,6 +2,7 @@ import os
 import time
 import sys
 from copy import copy
+import shutil
 
 import whitebox
 import laspy
@@ -32,13 +33,12 @@ def rasteration(data_folder, products_folder, resolution=1, remove_buildings=Tru
     """
     Takes every las file in the data_folder and creates 9 raster products from it (and
     a swapped xyrz las file).
-    These products are each put in their own subfolder.
+    Each las gets its own subfolder
 
     Args:
         data_folder: the directory that contains the las files
         products_folder: the directory to write the products to
         resolution: the resolution of the products to be written
-        lbl: the path to the lastools bin location
         remove_buildings: a boolean indicating if buildings should not be included in the dsm (and dhm) assuming
                           that they are classified in the las file
     Returns: None
@@ -62,20 +62,22 @@ def rasteration(data_folder, products_folder, resolution=1, remove_buildings=Tru
         print(f'Working on {file}')
         block_print()  # wbt has EXTREMELY obnoxious printouts
 
+
         # use laspy to store the return number in the user_data field
         in_file = laspy.file.File(filename, mode="rw")
         in_file.user_data = copy(in_file.return_num)
         in_file.close()
 
+
         # make the digital elevation model (trees, etc. removed)
         # only keep ground road water
-        demname = outname+'_dem.tif'
+        demname = outname+'_digel.tif'
         wbt.lidar_tin_gridding(i=filename, output=demname, parameter='elevation', returns='last', resolution=resolution,
                                exclude_cls=keep([2,9,11]))
 
         # make the digital surface model
         # keep everything except noise and wires and maybe buildings
-        dsmname = outname+'_dsm.tif'
+        dsmname = outname+'_digsm.tif'
         if remove_buildings:
             cls = '6,7,13,14,18'
         else:
@@ -84,11 +86,10 @@ def rasteration(data_folder, products_folder, resolution=1, remove_buildings=Tru
                                exclude_cls=cls)
 
         # make the digital height model
-        dhmname = outname+'_dhm.tif'
+        dhmname = outname+'_dighe.tif'
         wbt.subtract(dsmname, demname, dhmname)
 
-        # make an inverse digital height model
-
+        """
         # avg intensity (all returns)
         # keep everything except noise and wires
         allintensname = outname+'_allintens.tif'
@@ -100,21 +101,35 @@ def rasteration(data_folder, products_folder, resolution=1, remove_buildings=Tru
         firstintensname = outname+'_firstintens.tif'
         wbt.lidar_tin_gridding(i=filename, output=firstintensname, parameter='intensity', returns='first', resolution=resolution,
                                exclude_cls='7,13,14,18')
+        """
 
         # make the DEM slope raster
-        demslopename = outname+'_demslope.tif'
-        wbt.slope(dem=demname,output=demslopename)
+        demslopename = outname+'_demsl.tif'
+        wbt.slope(dem=demname, output=demslopename)
 
         # make the DSM slope raster
-        dsmslopename = outname+'_dsmslope.tif'
-        wbt.slope(dem=dsmname,output=dsmslopename)
+        dsmslopename = outname+'_dsmsl.tif'
+        wbt.slope(dem=dsmname, output=dsmslopename)
 
+        """
         # make the 1st return intensity slope raster
         firstintensslopename = outname + '_firstintensslope.tif'
         wbt.slope(firstintensname,firstintensslopename)
+        """
+
 
         # make a tif of the avg number of returns in a cell
-        nreturnsname = outname + '_nreturns.tif'
+        """
+        wbt.lidar_point_stats(i=filename, resolution=resolution, num_points=True, num_pulses=True)
+        pulse_file = filename[:-4] +'_num_pulses.tif'
+        pt_file = filename[:-4] + '_num_pnts.tif'
+        nreturnsname = outname + '_nretu.tif'
+        wbt.divide(pulse_file, pt_file, nreturnsname)
+        os.remove(pulse_file)
+        os.remove(pt_file)
+        """
+
+        nreturnsname = outname + '_nretu.tif'
         wbt.lidar_tin_gridding(i=filename, output=nreturnsname, parameter='user data', returns='last', resolution=resolution,
                                exclude_cls='7,13,14,18')
 
@@ -127,6 +142,95 @@ def rasteration(data_folder, products_folder, resolution=1, remove_buildings=Tru
         estimated_total_time = round(running_time*(1/frac_progress) - running_time, 2)
 
         print(f'Processing time: {intermediate_elap} seconds. File {i+1} of {n_files} complete. Estimated time remaining: '
+              f'{estimated_total_time} minutes')
+
+    final = time.time()
+    elap = round(final-start, 2)
+    print(f'FINISHED. Elapsed time: {elap/60} minutes')
+
+
+def copy_tiles(data_folder, target_folder):
+    """
+    Takes a folder full of subfolders full of rasters, then creates a subfolder in the target folder and
+    copies all appropriate rasters to that subfolder.
+
+    Args:
+        data_folder: the folder full of data subfolders
+        target_folder: the parent folder that the new subdirectories will be put in
+
+    Returns:
+        None
+    """
+
+    subs = os.listdir(data_folder)
+
+    if not isinstance(subs, list):
+        subs = [subs]
+    n_subs = len(subs)
+
+    start = time.time()
+    for i,sub in enumerate(subs):
+        intermediate1 = time.time()
+        print(f'Working on {sub}')
+        current = os.path.join(data_folder,sub)
+        files = os.listdir(current)
+        file_types = [f[-9:-4] for f in files]
+        for file,ftype in zip(files,file_types):
+            target = os.path.join(target_folder,ftype)
+            if not os.path.exists(target):
+                os.mkdir(target)
+            to_copy = os.path.join(current,file)
+            to_write = os.path.join(target,file)
+            shutil.copyfile(to_copy,to_write)
+
+        intermediate2 = time.time()
+        intermediate_elap = round(intermediate2-intermediate1, 2) # in seconds
+        running_time = round(intermediate2-start, 2)/60 # in minutes
+        frac_progress = (i+1)/n_subs
+        estimated_total_time = round(running_time*(1/frac_progress) - running_time, 2)
+
+        print(f'Processing time: {intermediate_elap} seconds. Folder {i+1} of {n_subs} complete. Estimated time remaining: '
+              f'{estimated_total_time} minutes')
+
+    final = time.time()
+    elap = round(final-start, 2)
+    print(f'FINISHED. Elapsed time: {elap/60} minutes')
+
+
+def mosaic_folders(parent):
+    """
+    Mosaics all images in every subfolder in the parent folder. Writes output to the parent folder.
+
+    Args:
+        parent: the parent directory
+
+    Returns:
+        None
+    """
+
+    subs = os.listdir(parent)
+
+    if not isinstance(subs, list):
+        subs = [subs]
+    n_subs = len(subs)
+
+    start = time.time()
+    for i,sub in enumerate(subs):
+        intermediate1 = time.time()
+        print(f'Working on {sub}')
+        current = os.path.join(parent,sub)
+        files = os.listdir(current)
+        full_files = [os.path.join(current,f) for f in files]
+        outer = current+'.tif'
+        wbt.mosaic(full_files, outer) # DOES NOT WORK
+
+        intermediate2 = time.time()
+        intermediate_elap = round(intermediate2-intermediate1, 2) # in seconds
+        running_time = round(intermediate2-start, 2)/60 # in minutes
+        frac_progress = (i+1)/n_subs
+        estimated_total_time = round(running_time*(1/frac_progress) - running_time, 2)
+
+        print(f'Processing time: {intermediate_elap} seconds. Folder {i+1} of {n_subs} complete. Estimated time remaining: '
               f'{estimated_total_time} minutes')
 
     final = time.time()
