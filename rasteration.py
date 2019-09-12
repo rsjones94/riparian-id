@@ -3,6 +3,7 @@ import time
 import sys
 from copy import copy
 import shutil
+import glob
 
 import whitebox
 import laspy
@@ -52,11 +53,16 @@ def rasteration(data_folder, products_folder, resolution=1, remove_buildings=Tru
     n_files = len(files)
 
     start = time.time()
+    problems = []
     for i,file in enumerate(files):
         intermediate1 = time.time()
         filename = os.path.join(data_folder, file)
         new_folder = os.path.join(products_folder, file)[:-4]  # sans .las
-        os.mkdir(new_folder)
+        if not os.path.exists(new_folder):
+            os.mkdir(new_folder)
+        else:
+            print(f'{file} exists. Skipping....')
+            continue
         outname = os.path.join(new_folder, file)[:-4]  # sans .las
 
         print(f'Working on {file}')
@@ -64,9 +70,14 @@ def rasteration(data_folder, products_folder, resolution=1, remove_buildings=Tru
 
 
         # use laspy to store the return number in the user_data field
-        in_file = laspy.file.File(filename, mode="rw")
-        in_file.user_data = copy(in_file.return_num)
-        in_file.close()
+        try:
+            with laspy.file.File(filename, mode="rw") as in_file:
+                in_file.user_data = copy(in_file.return_num)
+        except TypeError:
+            print(f'Problem opening file {file}. Skipping....')
+            os.rmdir(new_folder)
+            problems.append(file)
+            continue
 
 
         # make the digital elevation model (trees, etc. removed)
@@ -147,6 +158,8 @@ def rasteration(data_folder, products_folder, resolution=1, remove_buildings=Tru
     final = time.time()
     elap = round(final-start, 2)
     print(f'FINISHED. Elapsed time: {elap/60} minutes')
+    print(f'Problem files:')
+    print(problems)
 
 
 def copy_tiles(data_folder, target_folder):
@@ -178,10 +191,15 @@ def copy_tiles(data_folder, target_folder):
         for file,ftype in zip(files,file_types):
             target = os.path.join(target_folder,ftype)
             if not os.path.exists(target):
+                print(f'MAKING {target}')
                 os.mkdir(target)
             to_copy = os.path.join(current,file)
             to_write = os.path.join(target,file)
-            shutil.copyfile(to_copy,to_write)
+            if not os.path.exists(to_write):
+                shutil.copyfile(to_copy, to_write)
+            else:
+                print(f'{file} already present in target folder. Skipping....')
+                continue
 
         intermediate2 = time.time()
         intermediate_elap = round(intermediate2-intermediate1, 2) # in seconds
@@ -197,18 +215,19 @@ def copy_tiles(data_folder, target_folder):
     print(f'FINISHED. Elapsed time: {elap/60} minutes')
 
 
-def mosaic_folders(parent):
+def mosaic_folders(parent, path_to_gdal=r'C:\OSGeo4W64\bin'):
     """
     Mosaics all images in every subfolder in the parent folder. Writes output to the parent folder.
 
     Args:
         parent: the parent directory
+        path_to_gdal: the path to you GDAL bin
 
     Returns:
         None
     """
-
-    subs = os.listdir(parent)
+    wd = os.getcwd()
+    subs = [f.name for f in os.scandir(parent) if f.is_dir()]
 
     if not isinstance(subs, list):
         subs = [subs]
@@ -218,11 +237,31 @@ def mosaic_folders(parent):
     for i,sub in enumerate(subs):
         intermediate1 = time.time()
         print(f'Working on {sub}')
+
         current = os.path.join(parent,sub)
-        files = os.listdir(current)
-        full_files = [os.path.join(current,f) for f in files]
-        outer = current+'.tif'
-        wbt.mosaic(full_files, outer) # DOES NOT WORK
+        os.chdir(current)
+        files = os.listdir()
+        pairs = []
+        for j,f in enumerate(files):
+            os.rename(f, f'{j}.tif')
+            pairs.append((f, f'{j}.tif'))
+
+        wild = glob.glob('*.tif')
+        files_string = " ".join(wild)
+        gdal_merge = os.path.join(path_to_gdal, 'gdal_merge.py')
+        out_loc = os.path.join(parent,f'{sub}.tif')
+        if not os.path.exists(out_loc):
+            command = f"{gdal_merge} -o {out_loc} -of gtiff " + files_string
+            print(f'Run command: {command}')
+            os.system(command)
+
+            for previous, current in pairs:
+                os.rename(current, previous)
+        else:
+            print(f'{out_loc} exists. Skipping....')
+            for previous, current in pairs:
+                os.rename(current, previous)
+            continue
 
         intermediate2 = time.time()
         intermediate_elap = round(intermediate2-intermediate1, 2) # in seconds
@@ -236,3 +275,4 @@ def mosaic_folders(parent):
     final = time.time()
     elap = round(final-start, 2)
     print(f'FINISHED. Elapsed time: {elap/60} minutes')
+    os.chdir(wd)

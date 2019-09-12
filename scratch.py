@@ -12,6 +12,9 @@ from filter_rasters import *
 from preprocessing_tools import *
 from rasteration import *
 
+# '180500020905'
+# ARRA-CA_GoldenGate_2010_000878.las
+
 par = r'D:\SkyJones\gen_model\study_areas'
 folders = os.listdir(par)
 total_n = len(folders)
@@ -30,9 +33,7 @@ for i,sub in enumerate(folders):
     copy_target = os.path.join(working,'study_LiDAR','products','mosaic')
     copy_tiles(rasteration_target, copy_target)
 
-    #print(data)
-    #print(rasteration_target)
-    #print(copy_target)
+    mosaic_folders(copy_target)
 
 
 """
