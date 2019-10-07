@@ -14,7 +14,11 @@ from rasteration import *
 
 # '180500020905'
 # ARRA-CA_GoldenGate_2010_000878.las
+# lasoptimize -i "D:\SkyJones\gen_model\study_areas\180500020905\LiDAR\2010_golden\las\ARRA-CA_GoldenGate_2010_000878.las" -o "C:\Users\rj3h\Desktop\test.las"
+# file = r'D:\SkyJones\gen_model\study_areas\180500020905\LiDAR\2010_golden\las\ARRA-CA_GoldenGate_2010_000878.las'
 
+
+# workup
 par = r'D:\SkyJones\gen_model\study_areas'
 folders = os.listdir(par)
 total_n = len(folders)
