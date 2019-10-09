@@ -39,6 +39,9 @@ for i,sub in enumerate(folders):
 
     mosaic_folders(copy_target)
 
+#las2las -lof file_list.7248.txt -target_epsg 2777 -odir "D:\SkyJones\gen_model\study_areas\030902040303\LiDAR\2007_m\las" -olas -epsg 2881
+#las2las -lof file_list.9572.txt -merged -odir "D:\SkyJones\gen_model\study_areas\140801040103\LiDAR\2017\mosaic_las" -o "merged.las"
+#start 12:13 10/9 ^^
 
 """
 # move nreturns files

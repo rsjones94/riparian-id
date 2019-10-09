@@ -75,6 +75,7 @@ def rasteration(data_folder, products_folder, resolution=1, remove_buildings=Tru
                 in_file.user_data = copy(in_file.return_num)
         except TypeError:
             print(f'Problem opening file {file}. Skipping....')
+            raise Exception(f'NOOOO {file}')
             os.rmdir(new_folder)
             problems.append(file)
             continue
@@ -104,7 +105,8 @@ def rasteration(data_folder, products_folder, resolution=1, remove_buildings=Tru
         # avg intensity (all returns)
         # keep everything except noise and wires
         allintensname = outname+'_allintens.tif'
-        wbt.lidar_tin_gridding(i=filename, output=allintensname, parameter='intensity', returns='all', resolution=resolution,
+        wbt.lidar_tin_gridding(i=filename, output=allintensname, parameter='intensity', returns='all',
+                               resolution=resolution,
                                exclude_cls='7,13,14,18')
 
         # avg intensity (first returns)
@@ -225,7 +227,9 @@ def mosaic_folders(parent, path_to_gdal=r'C:\OSGeo4W64\bin'):
 
     Returns:
         None
+
     """
+    # path_to_gdal=r'C:\OSGeo4W64\bin'
     wd = os.getcwd()
     subs = [f.name for f in os.scandir(parent) if f.is_dir()]
 
