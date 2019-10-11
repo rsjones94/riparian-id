@@ -217,12 +217,16 @@ def copy_tiles(data_folder, target_folder):
     print(f'FINISHED. Elapsed time: {elap/60} minutes')
 
 
-def mosaic_folders(parent, path_to_gdal=r'C:\OSGeo4W64\bin'):
+def mosaic_folders(parent, cut_fol, shpf, spatial_ref, path_to_gdal=r'C:\OSGeo4W64\bin'):
     """
-    Mosaics all images in every subfolder in the parent folder. Writes output to the parent folder.
+    Mosaics all images in every subfolder in the parent folder. Writes output to the parent folder. Also cuts the mosaic
+    with a shapefile and copies it to the target folder
 
     Args:
         parent: the parent directory
+        cut_fol: where to copy cuts to
+        shpf: shapefile to cut with
+        spatial_ref: EPSG code
         path_to_gdal: the path to you GDAL bin
 
     Returns:
@@ -240,32 +244,61 @@ def mosaic_folders(parent, path_to_gdal=r'C:\OSGeo4W64\bin'):
     start = time.time()
     for i,sub in enumerate(subs):
         intermediate1 = time.time()
-        print(f'Working on {sub}')
+        print(f'Mosaicing {sub}')
 
         current = os.path.join(parent,sub)
         os.chdir(current)
         files = os.listdir()
         pairs = []
-        for j,f in enumerate(files):
-            os.rename(f, f'{j}.tif')
-            pairs.append((f, f'{j}.tif'))
 
-        wild = glob.glob('*.tif')
-        files_string = " ".join(wild)
-        gdal_merge = os.path.join(path_to_gdal, 'gdal_merge.py')
-        out_loc = os.path.join(parent,f'{sub}.tif')
-        if not os.path.exists(out_loc):
-            command = f"{gdal_merge} -o {out_loc} -of gtiff " + files_string
-            print(f'Run command: {command}')
-            os.system(command)
+        try:
+            for j,f in enumerate(files):
+                os.rename(f, f'{j}.tif')
+                pairs.append((f, f'{j}.tif'))
 
+            wild = glob.glob('*.tif')
+            files_string = " ".join(wild)
+            gdal_merge = os.path.join(path_to_gdal, 'gdal_merge.py')
+            out_loc = os.path.join(parent,f'{sub}.tif')
+            if not os.path.exists(out_loc):
+                command = f"{gdal_merge} -o {out_loc} -a_nodata -9999 -of gtiff " + files_string
+                print(f'Run command: {command}')
+                os.system(command)
+
+                """
+                trans_command = f'gdaltransform -t_srs EPSG:{spatial_ref} {out_loc} {out_loc}'
+                print(f'Run command: {trans_command}')
+                os.system(trans_command)
+                """
+                """
+                source_file  = wild[0]
+                trans_command = f'gdalcopyproj.py {source_file} {out_loc}'
+                print(f'Run command: {trans_command}')
+                os.system(trans_command)
+                """
+
+                stat_command = f'gdalinfo -stats {out_loc}'
+                print(f'Run command: {stat_command}')
+                os.system(stat_command)
+            else:
+                print(f'{out_loc} exists. Skipping mosaic....')
+                for previous, current in pairs:
+                    os.rename(current, previous)
+        except KeyboardInterrupt:
+            print(f'Keyboard interruption. Repairing file names before termination.')
             for previous, current in pairs:
                 os.rename(current, previous)
+
+
+        """
+        cut_output = os.path.join(cut_fol,f'{sub}.tif')
+        cut_command = f'gdalwarp -srcnodata -9999 -dstnodata -9999 -crop_to_cutline -cutline {shpf} {out_loc} {cut_output}'
+        if not os.path.exists(cut_output):
+            print(f'Run command: {cut_command}')
+            os.system(cut_command)
         else:
-            print(f'{out_loc} exists. Skipping....')
-            for previous, current in pairs:
-                os.rename(current, previous)
-            continue
+            print(f'{out_loc} exists. Skipping cutting....')
+        """
 
         intermediate2 = time.time()
         intermediate_elap = round(intermediate2-intermediate1, 2) # in seconds
@@ -280,3 +313,10 @@ def mosaic_folders(parent, path_to_gdal=r'C:\OSGeo4W64\bin'):
     elap = round(final-start, 2)
     print(f'FINISHED. Elapsed time: {elap/60} minutes')
     os.chdir(wd)
+
+
+
+    #stat_command = f'gdalinfo -stats {out_loc}'
+    #print(f'Run command: {stat_command}')
+
+    #gdalwarp - srcnodata < in > -dstnodata < out > -crop_to_cutline - cutline INPUT.shp INPUT.tif OUTPUT.tif

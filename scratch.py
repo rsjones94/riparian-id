@@ -17,6 +17,15 @@ from rasteration import *
 # lasoptimize -i "D:\SkyJones\gen_model\study_areas\180500020905\LiDAR\2010_golden\las\ARRA-CA_GoldenGate_2010_000878.las" -o "C:\Users\rj3h\Desktop\test.las"
 # file = r'D:\SkyJones\gen_model\study_areas\180500020905\LiDAR\2010_golden\las\ARRA-CA_GoldenGate_2010_000878.las'
 
+refs = {
+        '010500021301': 26919,
+        '030902040303': 2777,
+        '070801050901': 26915,
+        '080102040304': 3723,
+        '130202090102': 26913,
+        '140801040103': 26913,
+        '180500020905': 26910
+        }
 
 # workup
 par = r'D:\SkyJones\gen_model\study_areas'
@@ -35,9 +44,13 @@ for i,sub in enumerate(folders):
     rasteration_target = os.path.join(working,'study_LiDAR','products','tiled')
     rasteration(data, rasteration_target, resolution=1)
     copy_target = os.path.join(working,'study_LiDAR','products','mosaic')
+    cut_target = os.path.join(working,'study_LiDAR','products','clipped')
     copy_tiles(rasteration_target, copy_target)
 
-    mosaic_folders(copy_target)
+    cut_shape = os.path.join(working,'study_area','study_area_r.shp')
+
+    ref_code = refs[sub]
+    mosaic_folders(copy_target, cut_target, cut_shape, ref_code)
 
 #las2las -lof file_list.7248.txt -target_epsg 2777 -odir "D:\SkyJones\gen_model\study_areas\030902040303\LiDAR\2007_m\las" -olas -epsg 2881
 #las2las -lof file_list.9572.txt -merged -odir "D:\SkyJones\gen_model\study_areas\140801040103\LiDAR\2017\mosaic_las" -o "merged.las"
