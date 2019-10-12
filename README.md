@@ -1,2 +1,2 @@
-# mtsu-geoscience-tools
-Tools used for work under Dr. Henrique Momm and Dr. Racha El Kadiri at MTSU
+# riparian-id
+Exploratory analysis for identifying and segmenting riparian vegetation with LiDAR
