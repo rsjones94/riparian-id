@@ -1,8 +1,12 @@
-import random
 import os
+os.environ['GDAL_DATA'] = os.environ['CONDA_PREFIX'] + r'\Library\share\gdal'
+os.environ['PROJ_LIB'] = os.environ['CONDA_PREFIX'] + r'\Library\share'
+
+import random
 from copy import copy
 from shutil import copyfile
 
+import numpy as np
 from matplotlib import pyplot as plt
 from scipy.optimize import differential_evolution, brute
 import laspy
@@ -17,6 +21,10 @@ from rasteration import *
 # lasoptimize -i "D:\SkyJones\gen_model\study_areas\180500020905\LiDAR\2010_golden\las\ARRA-CA_GoldenGate_2010_000878.las" -o "C:\Users\rj3h\Desktop\test.las"
 # file = r'D:\SkyJones\gen_model\study_areas\180500020905\LiDAR\2010_golden\las\ARRA-CA_GoldenGate_2010_000878.las'
 
+
+x = 2
+
+
 refs = {
         '010500021301': 26919,
         '030902040303': 2777,
@@ -28,7 +36,7 @@ refs = {
         }
 
 # workup
-par = r'D:\SkyJones\gen_model\study_areas'
+par = r'E:\gen_model\study_areas'
 folders = os.listdir(par)
 total_n = len(folders)
 for i,sub in enumerate(folders):
@@ -51,6 +59,8 @@ for i,sub in enumerate(folders):
 
     ref_code = refs[sub]
     mosaic_folders(copy_target, cut_target, cut_shape, ref_code)
+    
+
 
 #las2las -lof file_list.7248.txt -target_epsg 2777 -odir "D:\SkyJones\gen_model\study_areas\030902040303\LiDAR\2007_m\las" -olas -epsg 2881
 #las2las -lof file_list.9572.txt -merged -odir "D:\SkyJones\gen_model\study_areas\140801040103\LiDAR\2017\mosaic_las" -o "merged.las"

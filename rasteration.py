@@ -4,6 +4,7 @@ import sys
 from copy import copy
 import shutil
 import glob
+import gdal
 
 import whitebox
 import laspy
@@ -65,7 +66,7 @@ def rasteration(data_folder, products_folder, resolution=1, remove_buildings=Tru
             continue
         outname = os.path.join(new_folder, file)[:-4]  # sans .las
 
-        print(f'Working on {file}')
+        print(f'Creating products for {file}')
         block_print()  # wbt has EXTREMELY obnoxious printouts
 
 
@@ -186,7 +187,7 @@ def copy_tiles(data_folder, target_folder):
     start = time.time()
     for i,sub in enumerate(subs):
         intermediate1 = time.time()
-        print(f'Working on {sub}')
+        print(f'Copying products from {sub}')
         current = os.path.join(data_folder,sub)
         files = os.listdir(current)
         file_types = [f[-9:-4] for f in files]
@@ -250,44 +251,40 @@ def mosaic_folders(parent, cut_fol, shpf, spatial_ref, path_to_gdal=r'C:\OSGeo4W
         os.chdir(current)
         files = os.listdir()
         pairs = []
+        out_loc = os.path.join(parent,f'{sub}.tif')
 
-        try:
-            for j,f in enumerate(files):
-                os.rename(f, f'{j}.tif')
-                pairs.append((f, f'{j}.tif'))
+        if not os.path.exists(out_loc):
+            try:
+                for j, f in enumerate(files):
+                    os.rename(f, f'{j}.tif')
+                    pairs.append((f, f'{j}.tif'))
 
-            wild = glob.glob('*.tif')
-            files_string = " ".join(wild)
-            gdal_merge = os.path.join(path_to_gdal, 'gdal_merge.py')
-            out_loc = os.path.join(parent,f'{sub}.tif')
-            if not os.path.exists(out_loc):
-                command = f"{gdal_merge} -o {out_loc} -a_nodata -9999 -of gtiff " + files_string
-                print(f'Run command: {command}')
-                os.system(command)
+                wild = glob.glob('*.tif')
+                files_string = " ".join(wild)
+                gdal_merge = os.path.join(path_to_gdal, 'gdal_merge.py')
 
-                """
-                trans_command = f'gdaltransform -t_srs EPSG:{spatial_ref} {out_loc} {out_loc}'
-                print(f'Run command: {trans_command}')
-                os.system(trans_command)
-                """
-                """
-                source_file  = wild[0]
-                trans_command = f'gdalcopyproj.py {source_file} {out_loc}'
-                print(f'Run command: {trans_command}')
-                os.system(trans_command)
-                """
+                mosaic_command = f"{gdal_merge} -o {out_loc} -a_nodata -9999 -of gtiff " + files_string
+                print(f'Run mosaic command: {mosaic_command}')
+                os.system(mosaic_command)
+
+                gdal_edit = os.path.join(path_to_gdal, 'gdal_edit.py')
+                edit_command = f'{gdal_edit} -a_srs EPSG:{spatial_ref} {out_loc}'
+                print(f'Run edit command: {edit_command}')
+                os.system(edit_command)
 
                 stat_command = f'gdalinfo -stats {out_loc}'
-                print(f'Run command: {stat_command}')
+                print(f'Run stats command: {stat_command}')
                 os.system(stat_command)
-            else:
-                print(f'{out_loc} exists. Skipping mosaic....')
+
                 for previous, current in pairs:
                     os.rename(current, previous)
-        except KeyboardInterrupt:
-            print(f'Keyboard interruption. Repairing file names before termination.')
-            for previous, current in pairs:
-                os.rename(current, previous)
+
+            except KeyboardInterrupt:
+                print(f'Keyboard interruption. Repairing file names before termination.')
+                for previous, current in pairs:
+                    os.rename(current, previous)
+        else:
+            print(f'{out_loc} exists. Skipping mosaic....')
 
 
         """
