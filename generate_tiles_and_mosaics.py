@@ -7,6 +7,7 @@ from copy import copy
 from shutil import copyfile
 
 import numpy as np
+import pandas as pd
 from matplotlib import pyplot as plt
 from scipy.optimize import differential_evolution, brute
 import laspy
@@ -19,6 +20,7 @@ from rasteration import *
 # '180500020905'
 # ARRA-CA_GoldenGate_2010_000878.las needed to be reexported to las
 
+"""
 refs = { # EPSG codes
         '010500021301': 26919,
         '030902040303': 2777,
@@ -28,8 +30,14 @@ refs = { # EPSG codes
         '140801040103': 26913,
         '180500020905': 26910
         }
+"""
 
-par = r'E:\gen_model\study_areas'
+par = r'E:\gen_model'
+sas = pd.read_excel(os.path.join(par, r'study_areas.xlsx'), dtype={'HUC12': object})
+sas = sas.set_index('HUC12')
+
+par = os.path.join(par,r'study_areas')
+
 folders = os.listdir(par)
 total_n = len(folders)
 for i,sub in enumerate(folders):
@@ -50,5 +58,5 @@ for i,sub in enumerate(folders):
 
     cut_shape = os.path.join(working,'study_area','study_area_r.shp')
 
-    ref_code = refs[sub]
+    ref_code = sas.loc[sub].EPSG
     mosaic_folders(copy_target, cut_target, cut_shape, ref_code)
