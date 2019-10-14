@@ -11,22 +11,39 @@ import gdal
 import glob
 import sqlite3
 
-path_to_gdal = r'C:\OSGeo4W64\bin'
-
-##### start 10:19pm
 
 par = r'E:\gen_model'
 sas = pd.read_excel(os.path.join(par, r'study_areas.xlsx'), dtype={'HUC12': object})
 sas = sas.set_index('HUC12')
 
+skippers = ['digsm', 'digel']
+if_exists = 'replace' # fail or replace (what to do if the table exists already in the DB). if fail, skips that table/huc
+
 parent = r'E:\gen_model\study_areas'
-subs = ['080102040304']
+subs = ['080102040304'] # which HUCS to extract data from
 
 start = time.time()
 n_subs = len(subs)
+
+db_loc = os.path.join(par, 'training.db')
+conn = sqlite3.connect(db_loc)
+
+cursor = conn.cursor()
+cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+present_tables = [f[0] for f in cursor.fetchall()]
+cursor.close()
+
 for k,sub in enumerate(subs):
-    intermediate1 = time.time()
+    if sub in present_tables:
+        print(f'{sub} already present in database, if_exists == "{if_exists}"')
+        if if_exists != 'replace':
+            print(f'ignoring')
+            continue
+        else:
+            print(f'overwriting')
     print(f'Generating training data for {sub}')
+
+    intermediate1 = time.time()
 
     working = os.path.join(parent,sub)
     train_folder = os.path.join(working, 'training')
@@ -77,7 +94,7 @@ for k,sub in enumerate(subs):
                   'epsg': sas.loc[sub].EPSG
                   }
     trans_ser = pd.Series(trans_dict)
-    trans_ser.to_csv(transformation_file)
+    trans_ser.to_csv(transformation_file, header=False)
 
     n_bands = len(band_dict.keys())
     mils_of_pts = trans_dict["nx"] * trans_dict["ny"] / 10 ** 6
@@ -89,6 +106,9 @@ for k,sub in enumerate(subs):
     for band in range(img.RasterCount):
         band += 1
         band_name = band_dict[band][:-4]
+        if band_name in skippers:
+            print(f'Skipping {band_name}')
+            continue
 
         print(f'Flattening {band_name}')
         input_band = img.GetRasterBand(band)
@@ -111,14 +131,13 @@ for k,sub in enumerate(subs):
     pared_rows = len(out_data)
     print(f'Dataframe pruned from {orig_rows} rows to {pared_rows} rows (reduced to '
           f'{round(pared_rows/orig_rows,3)*100}% of original)')
-    #data_file = os.path.join(train_folder, "data.csv")
-    #print(f'Writing {data_file}')
-    #out_data.to_csv(data_file)
-    db_loc = os.path.join(par, 'training.db')
 
     print('Writing to DB')
-    conn = sqlite3.connect(db_loc)
-    out_data.to_sql(name=sub, con=conn, index=True, chunksize=50000)
+    out_data.to_sql(name=sub, con=conn, index=True, index_label='cellno', chunksize=50000, if_exists=if_exists)
+    print('Establishing index')
+    c = conn.cursor()
+    c.execute(f"CREATE UNIQUE INDEX idx_cellno ON '{sub}' (cellno)")
+    c.close()
 
     intermediate2 = time.time()
     intermediate_elap = round(intermediate2 - intermediate1, 2)  # in seconds
@@ -129,6 +148,7 @@ for k,sub in enumerate(subs):
     print(f'Processing time: {round(intermediate_elap/60, 2)} minutes. Folder {k + 1} of {n_subs} complete. Estimated time remaining: '
           f'{estimated_total_time} minutes')
 
+conn.close()
 final = time.time()
 elap = round(final-start, 2)
 print(f'FINISHED. Elapsed time: {elap/60} minutes')
