@@ -97,7 +97,6 @@ for k,sub in enumerate(subs):
         flat_array = input_array.flatten()
         band_vals[band_name] = flat_array
 
-    data_file = os.path.join(train_folder, "data.csv")
     print('Generating dataframe')
     out_data = pd.DataFrame(band_vals)
     out_data['huc12'] = sub
@@ -112,6 +111,7 @@ for k,sub in enumerate(subs):
     pared_rows = len(out_data)
     print(f'Dataframe pruned from {orig_rows} rows to {pared_rows} rows (reduced to '
           f'{round(pared_rows/orig_rows,3)*100}% of original)')
+    #data_file = os.path.join(train_folder, "data.csv")
     #print(f'Writing {data_file}')
     #out_data.to_csv(data_file)
     db_loc = os.path.join(par, 'training.db')
