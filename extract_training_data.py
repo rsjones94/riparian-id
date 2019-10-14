@@ -9,10 +9,11 @@ import pandas as pd
 from matplotlib import pyplot as plt
 import gdal
 import glob
+import sqlite3
 
 path_to_gdal = r'C:\OSGeo4W64\bin'
 
-#####
+##### start 10:19pm
 
 par = r'E:\gen_model'
 sas = pd.read_excel(os.path.join(par, r'study_areas.xlsx'), dtype={'HUC12': object})
@@ -21,12 +22,9 @@ sas = sas.set_index('HUC12')
 parent = r'E:\gen_model\study_areas'
 subs = ['080102040304']
 
-class_nodata_val = 128 #unsigned 8bit
-data_nodata_val = -9999 #signed 32bit
-
 start = time.time()
 n_subs = len(subs)
-for sub in subs:
+for k,sub in enumerate(subs):
     intermediate1 = time.time()
     print(f'Generating training data for {sub}')
 
@@ -87,28 +85,45 @@ for sub in subs:
           f'\nTotal points: {round(n_bands*mils_of_pts,3)} million')
 
     band_vals = {}
+    band_nodatas = {}
     for band in range(img.RasterCount):
         band += 1
         band_name = band_dict[band][:-4]
-        print(f'Flattening {band_name}')
 
-        input_array = np.array(img.GetRasterBand(1).ReadAsArray())
+        print(f'Flattening {band_name}')
+        input_band = img.GetRasterBand(band)
+        band_nodatas[band_name] = input_band.GetNoDataValue()
+        input_array = np.array(input_band.ReadAsArray())
         flat_array = input_array.flatten()
         band_vals[band_name] = flat_array
 
     data_file = os.path.join(train_folder, "data.csv")
     print('Generating dataframe')
     out_data = pd.DataFrame(band_vals)
-    print(f'Writing {data_file}')
-    out_data.to_csv(data_file)
+    out_data['huc12'] = sub
+    print('Paring dataframe')
+    orig_rows = len(out_data)
+    for key,val in band_nodatas.items():
+        query = f'{key} != {val}'
+        print(query)
+        out_data.query(query, inplace=True)
+    pared_rows = len(out_data)
+    print(f'Dataframes pruned from {orig_rows} rows to {pared_rows} rows')
+    #print(f'Writing {data_file}')
+    #out_data.to_csv(data_file)
+    db_loc = os.path.join(par, 'training.db')
+    input(r'holding 4 u :^)')
+    print('Writing to DB')
+    conn = sqlite3.connect(db_loc)
+    out_data.to_sql(name=sub, con=conn, index=True, chunksize=1000)
 
     intermediate2 = time.time()
     intermediate_elap = round(intermediate2 - intermediate1, 2)  # in seconds
     running_time = round(intermediate2 - start, 2) / 60  # in minutes
-    frac_progress = (i + 1) / n_subs
+    frac_progress = (k + 1) / n_subs
     estimated_total_time = round(running_time * (1 / frac_progress) - running_time, 2)
 
-    print(f'Processing time: {intermediate_elap} seconds. Folder {i + 1} of {n_subs} complete. Estimated time remaining: '
+    print(f'Processing time: {intermediate_elap} seconds. Folder {k + 1} of {n_subs} complete. Estimated time remaining: '
           f'{estimated_total_time} minutes')
 
 final = time.time()
