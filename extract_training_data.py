@@ -103,19 +103,22 @@ for k,sub in enumerate(subs):
     out_data['huc12'] = sub
     print('Paring dataframe')
     orig_rows = len(out_data)
+    query = ''
     for key,val in band_nodatas.items():
-        query = f'{key} != {val}'
-        print(query)
-        out_data.query(query, inplace=True)
+        query += f'{key} != {val} and '
+    query = query[:-5]
+    print(f'Query: {query}')
+    out_data.query(query, inplace=True)
     pared_rows = len(out_data)
-    print(f'Dataframes pruned from {orig_rows} rows to {pared_rows} rows')
+    print(f'Dataframe pruned from {orig_rows} rows to {pared_rows} rows (reduced to '
+          f'{round(pared_rows/orig_rows,3)*100}% of original)')
     #print(f'Writing {data_file}')
     #out_data.to_csv(data_file)
     db_loc = os.path.join(par, 'training.db')
-    input(r'holding 4 u :^)')
+
     print('Writing to DB')
     conn = sqlite3.connect(db_loc)
-    out_data.to_sql(name=sub, con=conn, index=True, chunksize=1000)
+    out_data.to_sql(name=sub, con=conn, index=True, chunksize=50000)
 
     intermediate2 = time.time()
     intermediate_elap = round(intermediate2 - intermediate1, 2)  # in seconds
@@ -123,7 +126,7 @@ for k,sub in enumerate(subs):
     frac_progress = (k + 1) / n_subs
     estimated_total_time = round(running_time * (1 / frac_progress) - running_time, 2)
 
-    print(f'Processing time: {intermediate_elap} seconds. Folder {k + 1} of {n_subs} complete. Estimated time remaining: '
+    print(f'Processing time: {round(intermediate_elap/60, 2)} minutes. Folder {k + 1} of {n_subs} complete. Estimated time remaining: '
           f'{estimated_total_time} minutes')
 
 final = time.time()
