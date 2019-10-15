@@ -11,10 +11,11 @@ from IPython.display import Image
 from sklearn import tree
 import pydotplus
 
-n_rand = .1 * 10**6 # number of samples from each table. None for all sample
-training_perc = 0.4
+n_rand = None # number of samples from each table. None for all sample
+training_perc = 0.3
 feature_cols = ['demsl', 'dighe', 'dsmsl', 'nretu']
 class_col = 'classification'
+class_names = ['Other','Field','Natural','Tree']
 
 """
 
@@ -53,7 +54,7 @@ x_train, x_test, y_train, y_test = train_test_split(ex, why, test_size=1-trainin
 # test size fraction used to test trained model against
 
 # Create Decision Tree classifier object
-clf = DecisionTreeClassifier(criterion="entropy", max_depth=4)
+clf = DecisionTreeClassifier(criterion="entropy", max_depth=2)
 # Train Decision Tree classifier
 model = clf.fit(x_train,y_train)
 importances = model.feature_importances_
@@ -67,7 +68,7 @@ for feat, imp in zip(feature_cols, importances):
 
 dot_data = tree.export_graphviz(model, out_file=None,
                                 feature_names=feature_cols,
-                                class_names=class_col)
+                                class_names=['Other','Field','Natural','Tree'])
 # Draw graph
 graph = pydotplus.graph_from_dot_data(dot_data)
 # Show graph
@@ -75,6 +76,23 @@ graph = pydotplus.graph_from_dot_data(dot_data)
 out = os.path.join(par, 'decision_tree.pdf')
 graph.write_pdf(out)
 
+cf = metrics.confusion_matrix(y_test,y_pred)
+
+df_cm = pd.DataFrame(cf, index = [i for i in [j + 'P' for j in class_names]],
+                     columns = [i for i in [j + 'A' for j in class_names]])
+print(df_cm)
+
+for n in class_names:
+    nameP = n+'P'
+    nameA = n+'A'
+
+    total_pix = sum(df_cm[nameA])
+    perc_of_sample = round(total_pix/len(y_pred)*100,2)
+    correct_pix = df_cm[nameA].loc[nameP]
+    perc = round(correct_pix/total_pix*100,2)
+
+    print(f'{sum(df_cm[nameA])} ({perc_of_sample}%) {n} pixels, predicted correctly {perc}% of the time')
+
 final = time.time()
-elap = round(final-start, 2)
+elap = final-start
 print(f'FINISHED. Elapsed time: {round(elap/60,2)} minutes')

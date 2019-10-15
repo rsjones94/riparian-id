@@ -60,7 +60,7 @@ for k,sub in enumerate(subs):
             file_only = os.path.basename(os.path.normpath(file))
             band_dict[i+1] = file_only
         i += 1
-        class_file = os.path.join(working,r'study_area\class_raster.tif')
+        class_file = os.path.join(working,r'study_area\classification.tif')
         f.write(class_file)
         file_only = os.path.basename(os.path.normpath(class_file))
         band_dict[i + 1] = file_only
