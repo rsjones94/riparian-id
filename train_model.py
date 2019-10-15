@@ -82,6 +82,9 @@ df_cm = pd.DataFrame(cf, index = [i for i in [j + 'P' for j in class_names]],
                      columns = [i for i in [j + 'A' for j in class_names]])
 print(df_cm)
 
+report = metrics.classification_report(y_test,y_pred, target_names=class_names, output_dict=True)
+print(metrics.classification_report(y_test,y_pred, target_names=class_names))
+"""
 for n in class_names:
     nameP = n+'P'
     nameA = n+'A'
@@ -92,7 +95,7 @@ for n in class_names:
     perc = round(correct_pix/total_pix*100,2)
 
     print(f'{sum(df_cm[nameA])} ({perc_of_sample}%) {n} pixels, predicted correctly {perc}% of the time')
-
+"""
 final = time.time()
 elap = final-start
 print(f'FINISHED. Elapsed time: {round(elap/60,2)} minutes')
