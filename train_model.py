@@ -11,7 +11,7 @@ from IPython.display import Image
 from sklearn import tree
 import pydotplus
 
-n_rand = None # number of samples from each table. None for all sample
+n_rand = .1 * 10**6 # number of samples from each table. None for all sample
 training_perc = 0.4
 feature_cols = ['demsl', 'dighe', 'dsmsl', 'nretu']
 class_col = 'classification'
@@ -53,7 +53,7 @@ x_train, x_test, y_train, y_test = train_test_split(ex, why, test_size=1-trainin
 # test size fraction used to test trained model against
 
 # Create Decision Tree classifier object
-clf = DecisionTreeClassifier(criterion="entropy", max_depth=2)
+clf = DecisionTreeClassifier(criterion="entropy", max_depth=4)
 # Train Decision Tree classifier
 model = clf.fit(x_train,y_train)
 importances = model.feature_importances_
@@ -65,16 +65,16 @@ print('\nContributions')
 for feat, imp in zip(feature_cols, importances):
     print(f'{feat}: {round(imp*100,2)}%')
 
-dot_data = tree.export_graphviz(clf, out_file=None,
+dot_data = tree.export_graphviz(model, out_file=None,
                                 feature_names=feature_cols,
                                 class_names=class_col)
 # Draw graph
 graph = pydotplus.graph_from_dot_data(dot_data)
 # Show graph
 # Image(graph.create_png())
-out = os.path.join(par,'decision_tree.pdf')
+out = os.path.join(par, 'decision_tree.pdf')
 graph.write_pdf(out)
 
 final = time.time()
 elap = round(final-start, 2)
-print(f'FINISHED. Elapsed time: {elap/60} minutes')
+print(f'FINISHED. Elapsed time: {round(elap/60,2)} minutes')

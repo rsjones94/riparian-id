@@ -60,7 +60,7 @@ for k,sub in enumerate(subs):
             file_only = os.path.basename(os.path.normpath(file))
             band_dict[i+1] = file_only
         i += 1
-        class_file = os.path.join(working,r'study_area\classification.tif')
+        class_file = os.path.join(working,r'study_area\class_raster.tif')
         f.write(class_file)
         file_only = os.path.basename(os.path.normpath(class_file))
         band_dict[i + 1] = file_only
@@ -130,7 +130,7 @@ for k,sub in enumerate(subs):
     out_data.query(query, inplace=True)
     pared_rows = len(out_data)
     print(f'Dataframe pruned from {orig_rows} rows to {pared_rows} rows (reduced to '
-          f'{round(pared_rows/orig_rows,3)*100}% of original)')
+          f'{round(pared_rows/orig_rows*100,2)}% of original)')
 
     print('Writing to DB')
     out_data.to_sql(name=sub, con=conn, index=True, index_label='cellno', chunksize=50000, if_exists=if_exists)
