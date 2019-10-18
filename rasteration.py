@@ -353,19 +353,20 @@ def calc_stats_and_ref(folder, spatial_ref, path_to_gdal):
 
     for f in files:
         # add spatial ref
-        gdal_edit = os.path.join(path_to_gdal, 'gdal_edit.py')
-        edit_command = f'{gdal_edit} -a_srs EPSG:{spatial_ref} {f}'
-        print(f'Run edit command: {edit_command}')
-        block_print()
-        os.system(edit_command)
-        enable_print()
+        if not os.path.exists(f + '.aux.xml'): # if the aux file exists, we have already added the reference and stats
+            gdal_edit = os.path.join(path_to_gdal, 'gdal_edit.py')
+            edit_command = f'{gdal_edit} -a_srs EPSG:{spatial_ref} {f}'
+            print(f'Run edit command: {edit_command}')
+            block_print()
+            os.system(edit_command)
+            enable_print()
 
-        # calculate stats
-        stat_command = f'gdalinfo -stats {f}'
-        print(f'Run stats command: {stat_command}')
-        block_print()
-        os.system(stat_command)
-        enable_print()
+            # calculate stats
+            stat_command = f'gdalinfo -stats {f}'
+            print(f'Run stats command: {stat_command}')
+            block_print()
+            os.system(stat_command)
+            enable_print()
 
 
 def big_derivs(folder):
