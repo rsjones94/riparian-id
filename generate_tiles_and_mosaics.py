@@ -5,6 +5,7 @@ os.environ['PROJ_LIB'] = os.environ['CONDA_PREFIX'] + r'\Library\share'
 import random
 from copy import copy
 from shutil import copyfile
+import time
 
 import numpy as np
 import pandas as pd
@@ -32,6 +33,8 @@ refs = { # EPSG codes
         }
 """
 
+ovr = True
+
 par = r'E:\gen_model'
 sas = pd.read_excel(os.path.join(par, r'study_areas.xlsx'), dtype={'HUC12': object})
 sas = sas.set_index('HUC12')
@@ -40,6 +43,7 @@ par = os.path.join(par,r'study_areas')
 
 folders = os.listdir(par)
 total_n = len(folders)
+st = time.time()
 for i,sub in enumerate(folders):
     print(f'\n\n!!!!!!!!!!!!!!!\n Working on {sub}, {i+1} of {total_n} \n!!!!!!!!!!!!!!!\n\n')
     working = os.path.join(par,sub)
@@ -51,14 +55,24 @@ for i,sub in enumerate(folders):
     year_folder = year_folder[0]
     data = os.path.join(lidar_folder,year_folder,'las')
     rasteration_target = os.path.join(working,'study_LiDAR','products','tiled')
-    rasteration(data, rasteration_target, resolution=1, overwrite=False)
+
+    """
+    if sub == '010500021301':
+        ovr = False
+    else:
+        ovr = True
+    """
+
+    rasteration(data, rasteration_target, resolution=1, overwrite=ovr)
     copy_target = os.path.join(working,'study_LiDAR','products','mosaic')
     cut_target = os.path.join(working,'study_LiDAR','products','clipped')
-    copy_tiles(rasteration_target, copy_target, overwrite=False)
+    copy_tiles(rasteration_target, copy_target, overwrite=ovr)
 
     cut_shape = os.path.join(working,'study_area','study_area_r.shp')
 
     ref_code = sas.loc[sub].EPSG
     mosaic_folders(copy_target, cut_target, cut_shape, ref_code)
 
-    break
+en = time.time()
+
+print(f'Data generation complete. Elapsed time: {round((en-st)/60/60,2)} hours.')

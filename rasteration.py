@@ -59,34 +59,40 @@ def rasteration(data_folder, products_folder, resolution=1, remove_buildings=Tru
         if not os.path.exists(new_folder):
             os.mkdir(new_folder)
         elif overwrite:
-            print(f'{file} exists. Overwriting....')
+            print(f'{file} exists. Folder will be overwritten.')
             shutil.rmtree(new_folder)
             os.mkdir(new_folder)
         outname = os.path.join(new_folder, file)[:-4]  # sans .las
 
         print(f'Creating products for {file}')
+
+        demname = outname+'_digel.tif'
+        dsmname = outname + '_digsm.tif'
+        nreturnsname = outname + '_nretu.tif'
+
         block_print()  # wbt has EXTREMELY obnoxious printouts
 
-
-        # use laspy to store the return number in the user_data field
-        try:
-            with laspy.file.File(filename, mode="rw") as in_file:
-                in_file.user_data = copy(in_file.return_num)
-        except TypeError:
-            print(f'A problem occurred while attempting to modify {file}. Skipping')
-            problems.append(file)
-            continue
+        if not os.path.exists(nreturnsname):
+            # use laspy to store the return number in the user_data field
+            try:
+                with laspy.file.File(filename, mode="rw") as in_file:
+                    in_file.user_data = copy(in_file.return_num)
+            except TypeError:
+                print(f'A problem occurred while attempting to modify {file}. Skipping')
+                problems.append(file)
+                continue
+            wbt.lidar_tin_gridding(i=filename, output=nreturnsname, parameter='user data', returns='last', resolution=resolution,
+                                   exclude_cls='7,13,14,18')
 
         # make the digital elevation model (trees, etc. removed)
         # only keep ground road water
-        demname = outname+'_digel.tif'
         if not os.path.exists(demname):
             wbt.lidar_tin_gridding(i=filename, output=demname, parameter='elevation', returns='last', resolution=resolution,
                                    exclude_cls=keep([2,9,11]))
 
         # make the digital surface model
         # keep everything except noise and wires and maybe buildings
-        dsmname = outname+'_digsm.tif'
+
         if not os.path.exists(dsmname):
             if remove_buildings:
                 cls = '6,7,13,14,18'
@@ -167,11 +173,6 @@ def rasteration(data_folder, products_folder, resolution=1, remove_buildings=Tru
         os.remove(pulse_file)
         os.remove(pt_file)
         """
-
-        nreturnsname = outname + '_nretu.tif'
-        if not os.path.exists(nreturnsname):
-            wbt.lidar_tin_gridding(i=filename, output=nreturnsname, parameter='user data', returns='last', resolution=resolution,
-                                   exclude_cls='7,13,14,18')
 
         # timing
         enable_print()
@@ -322,9 +323,6 @@ def mosaic_folders(parent, cut_fol, shpf, spatial_ref, path_to_gdal=r'C:\OSGeo4W
         else:
             print(f'{out_loc} exists. Skipping mosaic....')
 
-        big_derivs(parent)
-        calc_stats_and_ref(parent, spatial_ref, path_to_gdal)
-
         intermediate2 = time.time()
         intermediate_elap = round(intermediate2-intermediate1, 2) # in seconds
         running_time = round(intermediate2-start, 2)/60 # in minutes
@@ -333,6 +331,9 @@ def mosaic_folders(parent, cut_fol, shpf, spatial_ref, path_to_gdal=r'C:\OSGeo4W
 
         print(f'Processing time: {intermediate_elap} seconds. Folder {i+1} of {n_subs} complete. Estimated time remaining: '
               f'{estimated_total_time} minutes')
+
+    big_derivs(parent)
+    calc_stats_and_ref(parent, spatial_ref, path_to_gdal)
 
     final = time.time()
     elap = round(final-start, 2)
@@ -380,36 +381,78 @@ def big_derivs(folder):
 
     demname = os.path.join(folder,'digel.tif')
     dsmname = os.path.join(folder,'digsm.tif')
+    nreturnsname = os.path.join(folder,'nretu.tif')
+
+    dhmname = os.path.join(folder,'dighe.tif')
+
+    demslopename = os.path.join(folder,'demsl.tif')
+    dsmslopename = os.path.join(folder,'dsmsl.tif')
+    dhmslopename = os.path.join(folder,'dhmsl.tif')
+
+    demroughnessname = os.path.join(folder, 'demro.tif')
+    dsmroughnessname = os.path.join(folder, 'dsmro.tif')
+    dhmroughnessname = os.path.join(folder, 'dhmro.tif')
+    nreturnsroughnessname = os.path.join(folder,'nrero.tif')
+
     #nreturnsname = os.path.join(folder,'nretu.tif')
 
     block_print()  # wbt has EXTREMELY obnoxious printouts
     # make the digital height model
-    dhmname = os.path.join(folder,'dighe.tif')
+
     if not os.path.exists(dhmname):
         wbt.subtract(dsmname, demname, dhmname)
     else:
         print(f'{dhmname} exists. Skipping generation....')
 
     # make the DEM slope raster
-    demslopename = os.path.join(folder,'demsl.tif')
+
     if not os.path.exists(demslopename):
         wbt.slope(dem=demname, output=demslopename)
     else:
         print(f'{demslopename} exists. Skipping generation....')
 
     # make the DSM slope raster
-    dsmslopename = os.path.join(folder,'dsmsl.tif')
     if not os.path.exists(dsmslopename):
         wbt.slope(dem=dsmname, output=dsmslopename)
     else:
         print(f'{dsmslopename} exists. Skipping generation....')
 
     # make the DHM slope raster
-    dhmslopename = os.path.join(folder,'dhmsl.tif')
     if not os.path.exists(dhmslopename):
         wbt.slope(dem=dhmname, output=dhmslopename)
     else:
         print(f'{dhmslopename} exists. Skipping generation....')
+
+    enable_print()
+
+    if not os.path.exists(demroughnessname):
+        command = f'gdaldem roughness {demname} {demroughnessname}'
+        print(f'Run DEM roughness command: {command}')
+        os.system(command)
+    else:
+        print(f'{demroughnessname} exists. Skipping generation....')
+
+    if not os.path.exists(dsmroughnessname):
+        command = f'gdaldem roughness {dsmname} {dsmroughnessname}'
+        print(f'Run DSM roughness command: {command}')
+        os.system(command)
+    else:
+        print(f'{dsmroughnessname} exists. Skipping generation....')
+
+    if not os.path.exists(dhmroughnessname):
+        command = f'gdaldem roughness {dhmname} {dhmroughnessname}'
+        print(f'Run DHM roughness command: {command}')
+        os.system(command)
+    else:
+        print(f'{dhmroughnessname} exists. Skipping generation....')
+
+    if not os.path.exists(nreturnsroughnessname):
+        command = f'gdaldem roughness {nreturnsname} {nreturnsroughnessname}'
+        print(f'Run return roughness command: {command}')
+        os.system(command)
+    else:
+        print(f'{nreturnsroughnessname} exists. Skipping generation....')
+
 
     """
     # make a DEM roughness file, kernel width = 11
@@ -427,5 +470,3 @@ def big_derivs(folder):
     if not os.path.exists(dhmroughname):
         wbt.average_normal_vector_angular_deviation(dem=dhmname, output=dhmroughname, filter=11)
     """
-
-    enable_print()
