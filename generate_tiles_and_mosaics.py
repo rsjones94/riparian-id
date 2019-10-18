@@ -51,12 +51,14 @@ for i,sub in enumerate(folders):
     year_folder = year_folder[0]
     data = os.path.join(lidar_folder,year_folder,'las')
     rasteration_target = os.path.join(working,'study_LiDAR','products','tiled')
-    rasteration(data, rasteration_target, resolution=1)
+    rasteration(data, rasteration_target, resolution=1, overwrite=False)
     copy_target = os.path.join(working,'study_LiDAR','products','mosaic')
     cut_target = os.path.join(working,'study_LiDAR','products','clipped')
-    copy_tiles(rasteration_target, copy_target)
+    copy_tiles(rasteration_target, copy_target, overwrite=False)
 
     cut_shape = os.path.join(working,'study_area','study_area_r.shp')
 
     ref_code = sas.loc[sub].EPSG
     mosaic_folders(copy_target, cut_target, cut_shape, ref_code)
+
+    break

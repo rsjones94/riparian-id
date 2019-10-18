@@ -9,9 +9,6 @@ import gdal
 import whitebox
 import laspy
 
-from preprocessing_tools import create_swapped_las
-
-
 wbt = whitebox.WhiteboxTools()
 
 # disable printing
@@ -31,7 +28,7 @@ def keep(nums):
     return ','.join(excludes)
 
 
-def rasteration(data_folder, products_folder, resolution=1, remove_buildings=True):
+def rasteration(data_folder, products_folder, resolution=1, remove_buildings=True, overwrite=False):
     """
     Takes every las file in the data_folder and creates 9 raster products from it (and
     a swapped xyrz las file).
@@ -61,9 +58,10 @@ def rasteration(data_folder, products_folder, resolution=1, remove_buildings=Tru
         new_folder = os.path.join(products_folder, file)[:-4]  # sans .las
         if not os.path.exists(new_folder):
             os.mkdir(new_folder)
-        else:
-            print(f'{file} exists. Skipping....')
-            continue
+        elif overwrite:
+            print(f'{file} exists. Overwriting....')
+            shutil.rmtree(new_folder)
+            os.mkdir(new_folder)
         outname = os.path.join(new_folder, file)[:-4]  # sans .las
 
         print(f'Creating products for {file}')
@@ -75,32 +73,34 @@ def rasteration(data_folder, products_folder, resolution=1, remove_buildings=Tru
             with laspy.file.File(filename, mode="rw") as in_file:
                 in_file.user_data = copy(in_file.return_num)
         except TypeError:
-            print(f'Problem opening file {file}. Skipping....')
-            raise Exception(f'NOOOO {file}')
-            os.rmdir(new_folder)
+            print(f'A problem occurred while attempting to modify {file}. Skipping')
             problems.append(file)
             continue
-
 
         # make the digital elevation model (trees, etc. removed)
         # only keep ground road water
         demname = outname+'_digel.tif'
-        wbt.lidar_tin_gridding(i=filename, output=demname, parameter='elevation', returns='last', resolution=resolution,
-                               exclude_cls=keep([2,9,11]))
+        if not os.path.exists(demname):
+            wbt.lidar_tin_gridding(i=filename, output=demname, parameter='elevation', returns='last', resolution=resolution,
+                                   exclude_cls=keep([2,9,11]))
 
         # make the digital surface model
         # keep everything except noise and wires and maybe buildings
         dsmname = outname+'_digsm.tif'
-        if remove_buildings:
-            cls = '6,7,13,14,18'
-        else:
-            cls = '7,13,14,18'
-        wbt.lidar_tin_gridding(i=filename, output=dsmname, parameter='elevation', returns='first', resolution=resolution,
-                               exclude_cls=cls)
+        if not os.path.exists(dsmname):
+            if remove_buildings:
+                cls = '6,7,13,14,18'
+            else:
+                cls = '7,13,14,18'
+            wbt.lidar_tin_gridding(i=filename, output=dsmname, parameter='elevation', returns='first', resolution=resolution,
+                                   exclude_cls=cls)
 
+        """
         # make the digital height model
         dhmname = outname+'_dighe.tif'
-        wbt.subtract(dsmname, demname, dhmname)
+        if not os.path.exists(dhmname):
+            wbt.subtract(dsmname, demname, dhmname)
+        """
 
         """
         # avg intensity (all returns)
@@ -117,13 +117,38 @@ def rasteration(data_folder, products_folder, resolution=1, remove_buildings=Tru
                                exclude_cls='7,13,14,18')
         """
 
+        """
         # make the DEM slope raster
         demslopename = outname+'_demsl.tif'
-        wbt.slope(dem=demname, output=demslopename)
+        if not os.path.exists(demslopename):
+            wbt.slope(dem=demname, output=demslopename)
 
         # make the DSM slope raster
         dsmslopename = outname+'_dsmsl.tif'
-        wbt.slope(dem=dsmname, output=dsmslopename)
+        if not os.path.exists(dsmslopename):
+            wbt.slope(dem=dsmname, output=dsmslopename)
+
+        # make the DHM slope raster
+        dhmslopename = outname+'_dhmsl.tif'
+        if not os.path.exists(dhmslopename):
+            wbt.slope(dem=dhmname, output=dhmslopename)
+
+        # make a DEM roughness file, kernel width = 11
+        demroughname = outname+'_demro.tif'
+        if not os.path.exists(demroughname):
+            wbt.average_normal_vector_angular_deviation(dem=demname, output=demroughname, filter=11)
+
+        # make a DSM roughness file, kernel width = 11
+        dsmroughname = outname+'_dsmro.tif'
+        if not os.path.exists(dsmroughname):
+            wbt.average_normal_vector_angular_deviation(dem=dsmname, output=dsmroughname, filter=11)
+
+        # make a DHM roughness file, kernel width = 11
+        dhmroughname = outname+'_dhmro.tif'
+        if not os.path.exists(dhmroughname):
+            wbt.average_normal_vector_angular_deviation(dem=dhmname, output=dhmroughname, filter=11)
+
+        """
 
         """
         # make the 1st return intensity slope raster
@@ -144,8 +169,9 @@ def rasteration(data_folder, products_folder, resolution=1, remove_buildings=Tru
         """
 
         nreturnsname = outname + '_nretu.tif'
-        wbt.lidar_tin_gridding(i=filename, output=nreturnsname, parameter='user data', returns='last', resolution=resolution,
-                               exclude_cls='7,13,14,18')
+        if not os.path.exists(nreturnsname):
+            wbt.lidar_tin_gridding(i=filename, output=nreturnsname, parameter='user data', returns='last', resolution=resolution,
+                                   exclude_cls='7,13,14,18')
 
         # timing
         enable_print()
@@ -165,7 +191,7 @@ def rasteration(data_folder, products_folder, resolution=1, remove_buildings=Tru
     print(problems)
 
 
-def copy_tiles(data_folder, target_folder):
+def copy_tiles(data_folder, target_folder, overwrite=False):
     """
     Takes a folder full of subfolders full of rasters, then creates a subfolder in the target folder and
     copies all appropriate rasters to that subfolder.
@@ -185,12 +211,19 @@ def copy_tiles(data_folder, target_folder):
     n_subs = len(subs)
 
     start = time.time()
+
+    if overwrite:
+        print(f'Overwriting {target_folder}....')
+        shutil.rmtree(target_folder)
+        os.mkdir(target_folder)
+
     for i,sub in enumerate(subs):
         intermediate1 = time.time()
         print(f'Copying products from {sub}')
         current = os.path.join(data_folder,sub)
         files = os.listdir(current)
         file_types = [f[-9:-4] for f in files]
+
         for file,ftype in zip(files,file_types):
             target = os.path.join(target_folder,ftype)
             if not os.path.exists(target):
@@ -220,8 +253,7 @@ def copy_tiles(data_folder, target_folder):
 
 def mosaic_folders(parent, cut_fol, shpf, spatial_ref, path_to_gdal=r'C:\OSGeo4W64\bin'):
     """
-    Mosaics all images in every subfolder in the parent folder. Writes output to the parent folder. Also cuts the mosaic
-    with a shapefile and copies it to the target folder
+    Mosaics all images in every subfolder in the parent folder. Writes output to the parent folder
 
     Args:
         parent: the parent directory
@@ -267,14 +299,18 @@ def mosaic_folders(parent, cut_fol, shpf, spatial_ref, path_to_gdal=r'C:\OSGeo4W
                 print(f'Run mosaic command: {mosaic_command}')
                 os.system(mosaic_command)
 
+                """
+                #add spatial ref
                 gdal_edit = os.path.join(path_to_gdal, 'gdal_edit.py')
                 edit_command = f'{gdal_edit} -a_srs EPSG:{spatial_ref} {out_loc}'
                 print(f'Run edit command: {edit_command}')
                 os.system(edit_command)
 
+                # calculate stats
                 stat_command = f'gdalinfo -stats {out_loc}'
                 print(f'Run stats command: {stat_command}')
                 os.system(stat_command)
+                """
 
                 for previous, current in pairs:
                     os.rename(current, previous)
@@ -286,16 +322,8 @@ def mosaic_folders(parent, cut_fol, shpf, spatial_ref, path_to_gdal=r'C:\OSGeo4W
         else:
             print(f'{out_loc} exists. Skipping mosaic....')
 
-
-        """
-        cut_output = os.path.join(cut_fol,f'{sub}.tif')
-        cut_command = f'gdalwarp -srcnodata -9999 -dstnodata -9999 -crop_to_cutline -cutline {shpf} {out_loc} {cut_output}'
-        if not os.path.exists(cut_output):
-            print(f'Run command: {cut_command}')
-            os.system(cut_command)
-        else:
-            print(f'{out_loc} exists. Skipping cutting....')
-        """
+        big_derivs(parent)
+        calc_stats_and_ref(parent, spatial_ref, path_to_gdal)
 
         intermediate2 = time.time()
         intermediate_elap = round(intermediate2-intermediate1, 2) # in seconds
@@ -311,9 +339,93 @@ def mosaic_folders(parent, cut_fol, shpf, spatial_ref, path_to_gdal=r'C:\OSGeo4W
     print(f'FINISHED. Elapsed time: {elap/60} minutes')
     os.chdir(wd)
 
+def calc_stats_and_ref(folder, spatial_ref, path_to_gdal):
+    """
+
+    :param folder:
+    :param spatial_ref:
+    :return:
+    """
+
+    files = [f.name for f in os.scandir(folder) if not f.is_dir() and r'.aux' not in f.name]
+    files = [os.path.join(folder,f) for f in files]
+
+    for f in files:
+        # add spatial ref
+        gdal_edit = os.path.join(path_to_gdal, 'gdal_edit.py')
+        edit_command = f'{gdal_edit} -a_srs EPSG:{spatial_ref} {f}'
+        print(f'Run edit command: {edit_command}')
+        block_print()
+        os.system(edit_command)
+        enable_print()
+
+        # calculate stats
+        stat_command = f'gdalinfo -stats {f}'
+        print(f'Run stats command: {stat_command}')
+        block_print()
+        os.system(stat_command)
+        enable_print()
 
 
-    #stat_command = f'gdalinfo -stats {out_loc}'
-    #print(f'Run command: {stat_command}')
+def big_derivs(folder):
+    """
+    Generates derivative data for rasters
 
-    #gdalwarp - srcnodata < in > -dstnodata < out > -crop_to_cutline - cutline INPUT.shp INPUT.tif OUTPUT.tif
+    Args:
+        folder: path of target folder
+
+    Returns:
+        None
+    """
+
+    demname = os.path.join(folder,'digel.tif')
+    dsmname = os.path.join(folder,'digsm.tif')
+    #nreturnsname = os.path.join(folder,'nretu.tif')
+
+    block_print()  # wbt has EXTREMELY obnoxious printouts
+    # make the digital height model
+    dhmname = os.path.join(folder,'dighe.tif')
+    if not os.path.exists(dhmname):
+        wbt.subtract(dsmname, demname, dhmname)
+    else:
+        print(f'{dhmname} exists. Skipping generation....')
+
+    # make the DEM slope raster
+    demslopename = os.path.join(folder,'demsl.tif')
+    if not os.path.exists(demslopename):
+        wbt.slope(dem=demname, output=demslopename)
+    else:
+        print(f'{demslopename} exists. Skipping generation....')
+
+    # make the DSM slope raster
+    dsmslopename = os.path.join(folder,'dsmsl.tif')
+    if not os.path.exists(dsmslopename):
+        wbt.slope(dem=dsmname, output=dsmslopename)
+    else:
+        print(f'{dsmslopename} exists. Skipping generation....')
+
+    # make the DHM slope raster
+    dhmslopename = os.path.join(folder,'dhmsl.tif')
+    if not os.path.exists(dhmslopename):
+        wbt.slope(dem=dhmname, output=dhmslopename)
+    else:
+        print(f'{dhmslopename} exists. Skipping generation....')
+
+    """
+    # make a DEM roughness file, kernel width = 11
+    demroughname = outname + '_demro.tif'
+    if not os.path.exists(demroughname):
+        wbt.average_normal_vector_angular_deviation(dem=demname, output=demroughname, filter=11)
+
+    # make a DSM roughness file, kernel width = 11
+    dsmroughname = outname + '_dsmro.tif'
+    if not os.path.exists(dsmroughname):
+        wbt.average_normal_vector_angular_deviation(dem=dsmname, output=dsmroughname, filter=11)
+
+    # make a DHM roughness file, kernel width = 11
+    dhmroughname = outname + '_dhmro.tif'
+    if not os.path.exists(dhmroughname):
+        wbt.average_normal_vector_angular_deviation(dem=dhmname, output=dhmroughname, filter=11)
+    """
+
+    enable_print()

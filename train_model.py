@@ -13,9 +13,10 @@ import pydotplus
 
 n_rand = None # number of samples from each table. None for all sample
 training_perc = 0.3
-feature_cols = ['demsl', 'dighe', 'dsmsl', 'nretu']
+drop_cols = ['cellno','classification','huc12'] # cols not to use as feature classes
+#feature_cols = ['demsl', 'dighe', 'dsmsl', 'nretu']
 class_col = 'classification'
-class_names = ['Other','Field','Natural','Tree']
+class_names = ['Other','Field','Natural','Tree'] # 1, 2, 3, 4
 
 """
 
@@ -47,6 +48,8 @@ df = pd.read_sql(query, conn)
 conn.close()
 
 print('Data read. Training model')
+cols = list(df.columns)
+feature_cols = [i for i in cols if i not in drop_cols]
 ex = df[feature_cols]
 why = df[class_col]
 
