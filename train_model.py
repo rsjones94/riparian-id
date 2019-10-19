@@ -18,6 +18,8 @@ drop_cols = ['cellno','classification','huc12'] # cols not to use as feature cla
 class_col = 'classification'
 class_names = ['Other','Field','Natural','Tree'] # 1, 2, 3, 4
 
+par = r'E:\gen_model'
+
 """
 
 NOTE:
@@ -27,8 +29,6 @@ handle categorical PREDICTIONS. This model has continuous, noninteger data and c
 """
 ####
 start = time.time()
-
-par = r'E:\gen_model'
 
 db_loc = os.path.join(par, 'training.db')
 conn = sqlite3.connect(db_loc)
@@ -57,7 +57,9 @@ x_train, x_test, y_train, y_test = train_test_split(ex, why, test_size=1-trainin
 # test size fraction used to test trained model against
 
 # Create Decision Tree classifier object
-clf = DecisionTreeClassifier(criterion="entropy", max_depth=2)
+clf = DecisionTreeClassifier(criterion="entropy",
+                             max_depth=4,
+                             min_samples_leaf=0.1)
 # Train Decision Tree classifier
 model = clf.fit(x_train,y_train)
 importances = model.feature_importances_

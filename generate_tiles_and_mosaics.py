@@ -33,7 +33,7 @@ refs = { # EPSG codes
         }
 """
 
-#ovr = True
+ovr = False
 
 par = r'E:\gen_model'
 sas = pd.read_excel(os.path.join(par, r'study_areas.xlsx'), dtype={'HUC12': object})
@@ -55,11 +55,6 @@ for i,sub in enumerate(folders):
     year_folder = year_folder[0]
     data = os.path.join(lidar_folder,year_folder,'las')
     rasteration_target = os.path.join(working,'study_LiDAR','products','tiled')
-
-    if sub in ['010500021301', '030902040303', '070801050901', '080102040304']:
-        ovr = False
-    else:
-        ovr = True
 
     rasteration(data, rasteration_target, resolution=1, overwrite=ovr)
     copy_target = os.path.join(working,'study_LiDAR','products','mosaic')
