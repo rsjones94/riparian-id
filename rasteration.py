@@ -1,11 +1,13 @@
 import os
+os.environ['GDAL_DATA'] = os.environ['CONDA_PREFIX'] + r'\Library\share\gdal'
+os.environ['PROJ_LIB'] = os.environ['CONDA_PREFIX'] + r'\Library\share'
 import time
 import sys
 from copy import copy
 import shutil
 import glob
-import gdal
 
+import gdal
 import whitebox
 import laspy
 
@@ -213,9 +215,11 @@ def copy_tiles(data_folder, target_folder, overwrite=False):
 
     start = time.time()
 
-    if overwrite:
+    if overwrite and os.path.exists(target_folder):
         print(f'Overwriting {target_folder}....')
         shutil.rmtree(target_folder)
+
+    if not os.path.exists(target_folder):
         os.mkdir(target_folder)
 
     for i,sub in enumerate(subs):
@@ -340,6 +344,7 @@ def mosaic_folders(parent, cut_fol, shpf, spatial_ref, path_to_gdal=r'C:\OSGeo4W
     print(f'FINISHED. Elapsed time: {elap/60} minutes')
     os.chdir(wd)
 
+
 def calc_stats_and_ref(folder, spatial_ref, path_to_gdal):
     """
 
@@ -357,16 +362,12 @@ def calc_stats_and_ref(folder, spatial_ref, path_to_gdal):
             gdal_edit = os.path.join(path_to_gdal, 'gdal_edit.py')
             edit_command = f'{gdal_edit} -a_srs EPSG:{spatial_ref} {f}'
             print(f'Run edit command: {edit_command}')
-            block_print()
             os.system(edit_command)
-            enable_print()
 
             # calculate stats
             stat_command = f'gdalinfo -stats {f}'
             print(f'Run stats command: {stat_command}')
-            block_print()
             os.system(stat_command)
-            enable_print()
 
 
 def big_derivs(folder):
@@ -380,22 +381,24 @@ def big_derivs(folder):
         None
     """
 
-    demname = os.path.join(folder,'digel.tif')
-    dsmname = os.path.join(folder,'digsm.tif')
-    nreturnsname = os.path.join(folder,'nretu.tif')
+    demname = os.path.join(folder, 'digel.tif')
+    dsmname = os.path.join(folder, 'digsm.tif')
+    nreturnsname = os.path.join(folder, 'nretu.tif')
 
-    dhmname = os.path.join(folder,'dighe.tif')
+    dhmname = os.path.join(folder, 'dighe.tif')
 
-    demslopename = os.path.join(folder,'demsl.tif')
-    dsmslopename = os.path.join(folder,'dsmsl.tif')
-    dhmslopename = os.path.join(folder,'dhmsl.tif')
+    demslopename = os.path.join(folder, 'demsl.tif')
+    dsmslopename = os.path.join(folder, 'dsmsl.tif')
+    dhmslopename = os.path.join(folder, 'dhmsl.tif')
 
     demroughnessname = os.path.join(folder, 'demro.tif')
     dsmroughnessname = os.path.join(folder, 'dsmro.tif')
     dhmroughnessname = os.path.join(folder, 'dhmro.tif')
-    nreturnsroughnessname = os.path.join(folder,'nrero.tif')
+    nreturnsroughnessname = os.path.join(folder, 'nrero.tif')
 
-    #nreturnsname = os.path.join(folder,'nretu.tif')
+    # cubic convolution resampling
+    dhmresamplename = os.path.join(folder, 'dhmcu.tif')
+    nreturnsresamplename = os.path.join(folder, 'nrecu.tif')
 
     block_print()  # wbt has EXTREMELY obnoxious printouts
     # make the digital height model
@@ -453,6 +456,23 @@ def big_derivs(folder):
         os.system(command)
     else:
         print(f'{nreturnsroughnessname} exists. Skipping generation....')
+
+    """
+
+    if not os.path.exists(dhmresamplename): ###
+        command = f'gdalwarp  -r cubic {dhmname} {dhmresamplename}'
+        print(f'Run dhm resampling command: {command}')
+        os.system(command)
+    else:
+        print(f'{dhmresamplename} exists. Skipping generation....')
+
+    if not os.path.exists(nreturnsresamplename): ###
+        command = f'gdalwarp  -r cubic {nreturnsname} {nreturnsresamplename}'
+        print(f'Run return resampling command: {command}')
+        os.system(command)
+    else:
+        print(f'{nreturnsresamplename} exists. Skipping generation....')
+    """
 
 
     """
