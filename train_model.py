@@ -6,10 +6,11 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import train_test_split
 from sklearn import metrics
 import sqlite3
-
 from IPython.display import Image
 from sklearn import tree
 import pydotplus
+
+from generate_full_predictions import predict_cover
 
 n_rand = None # number of samples from each table. None for all sample
 training_perc = 0.3
@@ -20,14 +21,10 @@ class_names = ['Other','Field','Natural','Tree'] # 1, 2, 3, 4
 
 par = r'E:\gen_model'
 
-"""
-
-NOTE:
-sklearn currently cannot handle categorical DATA in its decision trees. I do not believe, however, that it can't
-handle categorical PREDICTIONS. This model has continuous, noninteger data and categorical unordered output.
-
-"""
 ####
+sas = pd.read_excel(os.path.join(par, r'study_areas.xlsx'), dtype={'HUC12': object})
+sas = sas.set_index('HUC12')
+
 start = time.time()
 
 db_loc = os.path.join(par, 'training.db')
@@ -78,8 +75,8 @@ dot_data = tree.export_graphviz(model, out_file=None,
 graph = pydotplus.graph_from_dot_data(dot_data)
 # Show graph
 # Image(graph.create_png())
-out = os.path.join(par, 'decision_tree.pdf')
-graph.write_pdf(out)
+decision_tree_pic = os.path.join(par, 'decision_tree.pdf')
+graph.write_pdf(decision_tree_pic)
 
 cf = metrics.confusion_matrix(y_test,y_pred)
 
@@ -104,3 +101,6 @@ for n in class_names:
 final = time.time()
 elap = final-start
 print(f'FINISHED. Elapsed time: {round(elap/60,2)} minutes')
+
+fol = os.path.join(r'E:\gen_model\study_areas', tab)
+predict_cover(fol, feature_cols, model, decision_tree_pic, sas.loc[tab].EPSG)

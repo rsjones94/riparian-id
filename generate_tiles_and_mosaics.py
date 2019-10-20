@@ -18,6 +18,8 @@ from filter_rasters import *
 from preprocessing_tools import *
 from rasteration import *
 
+# consider removing excessive scan angles with wbt.filter_lidar_scan_angles()
+
 # '180500020905'
 # ARRA-CA_GoldenGate_2010_000878.las needed to be reexported to las
 

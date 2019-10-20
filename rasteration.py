@@ -84,13 +84,13 @@ def rasteration(data_folder, products_folder, resolution=1, remove_buildings=Tru
                 problems.append(file)
                 continue
             wbt.lidar_tin_gridding(i=filename, output=nreturnsname, parameter='user data', returns='last', resolution=resolution,
-                                   exclude_cls='7,13,14,18')
+                                   exclude_cls='7,13,14,18', max_triangle_edge_length=5)
 
         # make the digital elevation model (trees, etc. removed)
         # only keep ground road water
         if not os.path.exists(demname):
             wbt.lidar_tin_gridding(i=filename, output=demname, parameter='elevation', returns='last', resolution=resolution,
-                                   exclude_cls=keep([2,9,11]))
+                                   exclude_cls=keep([2,9,11]), max_triangle_edge_length=5)
 
         # make the digital surface model
         # keep everything except noise and wires and maybe buildings
@@ -101,7 +101,7 @@ def rasteration(data_folder, products_folder, resolution=1, remove_buildings=Tru
             else:
                 cls = '7,13,14,18'
             wbt.lidar_tin_gridding(i=filename, output=dsmname, parameter='elevation', returns='first', resolution=resolution,
-                                   exclude_cls=cls)
+                                   exclude_cls=cls, max_triangle_edge_length=5)
 
         """
         # make the digital height model
@@ -345,7 +345,7 @@ def mosaic_folders(parent, cut_fol, shpf, spatial_ref, path_to_gdal=r'C:\OSGeo4W
     os.chdir(wd)
 
 
-def calc_stats_and_ref(folder, spatial_ref, path_to_gdal):
+def calc_stats_and_ref(folder, spatial_ref, path_to_gdal=r'C:\OSGeo4W64\bin'):
     """
 
     :param folder:
@@ -358,7 +358,7 @@ def calc_stats_and_ref(folder, spatial_ref, path_to_gdal):
 
     for f in files:
         # add spatial ref
-        if not os.path.exists(f + '.aux.xml'): # if the aux file exists, we have already added the reference and stats
+        if not os.path.exists(f + '.aux.xml') and 'tif' in f: # if the aux file exists, we have already added the reference and stats
             gdal_edit = os.path.join(path_to_gdal, 'gdal_edit.py')
             edit_command = f'{gdal_edit} -a_srs EPSG:{spatial_ref} {f}'
             print(f'Run edit command: {edit_command}')
