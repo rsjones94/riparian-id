@@ -22,6 +22,8 @@ if_exists = 'replace' # fail or replace (what to do if the table exists already 
 parent = r'E:\gen_model\study_areas'
 subs = ['080102040304'] # which HUCS to extract data from
 
+training_folder = r'E:\gen_model\training_sets'
+
 start = time.time()
 n_subs = len(subs)
 
@@ -46,13 +48,12 @@ for k,sub in enumerate(subs):
     intermediate1 = time.time()
 
     working = os.path.join(parent,sub)
-    train_folder = os.path.join(working, 'training')
+    train_folder = os.path.join(training_folder,sub)
     train_txt = os.path.join(train_folder, 'training_list.txt')
 
     # need to make a list of files to use to create the vrt
     band_dict = {}
-    training_list = os.path.join(train_folder, "training_list.txt")
-    with open(training_list, "w+") as f:
+    with open(train_txt, "w+") as f:
         mosaic_folder = os.path.join(working, r'study_LiDAR\products\mosaic')
         wild = glob.glob(os.path.join(mosaic_folder, r'*.tif'))
         for i,file in enumerate(wild):
@@ -60,10 +61,17 @@ for k,sub in enumerate(subs):
             file_only = os.path.basename(os.path.normpath(file))
             band_dict[i+1] = file_only
         i += 1
-        class_file = os.path.join(working,r'study_area\classification.tif')
+
+        class_file = os.path.join(training_folder,sub,r'classification.tif')
         f.write(class_file)
         file_only = os.path.basename(os.path.normpath(class_file))
         band_dict[i + 1] = file_only
+
+    # convert the vector classes to raster
+    vector_classes = os.path.join(train_folder, r'classification.shp')
+    rasterize_command = f'gdal_rasterize -tr 1 1 -a Classvalue -a_nodata 128 {vector_classes} {class_file}'
+    print(f'Rasterizing vector classes: {rasterize_command}')
+    os.system(rasterize_command)
 
     # get dims of the training class file, which will be our minimum bounding box
 
