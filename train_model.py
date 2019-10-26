@@ -23,7 +23,7 @@ class_col = 'classification'
 class_names = ['Other','Field','Natural','Tree'] # 1, 2, 3, 4
 
 model_name = 'test'
-write_model = False
+write_model = True
 
 par = r'F:\gen_model'
 training_folder = r'F:\gen_model\training_sets'

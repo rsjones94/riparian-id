@@ -62,6 +62,7 @@ def predict_cover(huc_folder, out_folder, feature_cols, decision_tree, epsg):
 
     band_vals = {}
     band_nodatas = {}
+    submasks = []
     for band in range(img.RasterCount):
         band += 1
         band_name = band_dict[band][:-4]
@@ -71,15 +72,25 @@ def predict_cover(huc_folder, out_folder, feature_cols, decision_tree, epsg):
         band_nodatas[band_name] = input_band.GetNoDataValue()
         input_array = np.array(input_band.ReadAsArray())
         flat_array = input_array.flatten()
+        smask = flat_array != band_nodatas[band_name]
+        submasks.append(smask)
+        print(f'smask len: {len(smask)}')
+
         flat_array[flat_array == band_nodatas[band_name]] = np.mean(flat_array) # fill nodata with mean, but could use different val
         band_vals[band_name] = flat_array
+        print(f'Len: {len(flat_array)}')
 
+    print('Generating mask')
+    mask = np.array(list(map(all, zip(*submasks)))) # logical elementwise AND of all sublists
+    print(f'Mask len: {len(mask)}')
     print('Generating dataframe')
     data = pd.DataFrame(band_vals)
+    print(f'Data size: {data.size}')
 
     print('Making predictions')
     y = decision_tree.predict(data)
-    y = np.reshape(y, (ny,nx))
+    masked = y*mask
+    resh = np.reshape(masked, (ny,nx))
 
     print('Writing predictions')
     out = os.path.join(pred_folder, 'prediction.tif')
@@ -87,8 +98,8 @@ def predict_cover(huc_folder, out_folder, feature_cols, decision_tree, epsg):
     outdata = driver.Create(out, nx, ny, 1, gdal.GDT_Int16)
     outdata.SetGeoTransform(img.GetGeoTransform())  ##sets same geotransform as input
     outdata.SetProjection(img.GetProjection())  ##sets same projection as input
-    outdata.GetRasterBand(1).WriteArray(y)
-    outdata.GetRasterBand(1).SetNoDataValue(-9999)  ##if you want these values transparent
+    outdata.GetRasterBand(1).WriteArray(resh)
+    outdata.GetRasterBand(1).SetNoDataValue(0)  ##if you want these values transparent
     outdata.FlushCache()  ##saves to disk!!
     outdata = None
     band = None
