@@ -2,20 +2,8 @@ import os
 os.environ['GDAL_DATA'] = os.environ['CONDA_PREFIX'] + r'\Library\share\gdal'
 os.environ['PROJ_LIB'] = os.environ['CONDA_PREFIX'] + r'\Library\share'
 
-import random
-from copy import copy
-from shutil import copyfile
-import time
-
-import numpy as np
 import pandas as pd
-from matplotlib import pyplot as plt
-from scipy.optimize import differential_evolution, brute
-import laspy
 
-from optimization_helpers import *
-from filter_rasters import *
-from preprocessing_tools import *
 from rasteration import *
 
 # consider removing excessive scan angles with wbt.filter_lidar_scan_angles()
