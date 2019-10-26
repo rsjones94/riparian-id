@@ -22,7 +22,7 @@ drop_cols = ['cellno','classification','huc12'] # cols not to use as feature cla
 class_col = 'classification'
 class_names = ['Other','Field','Natural','Tree'] # 1, 2, 3, 4
 
-model_name = 'test'
+model_name = 'tester'
 write_model = True
 
 par = r'F:\gen_model'
@@ -120,14 +120,15 @@ print(f'Finished training model. Elapsed time: {round(elap/60,2)} minutes')
 fol = os.path.join(r'F:\gen_model\study_areas', tab)
 of = os.path.join(model_folder, tab)
 
+pickle_model_name = os.path.join(model_folder, 'clf.joblib')
+dump(clf, pickle_model_name)
+
 if write_model:
-    predict_cover(fol, of, feature_cols, model, sas.loc[tab].EPSG)
+    predict_cover(fol, of, feature_cols, pickle_model_name, sas.loc[tab].EPSG)
 
 decision_tree_pic = os.path.join(model_folder, 'decision_tree.pdf')
 graph.write_pdf(decision_tree_pic)
 
-pickle_model_name = os.path.join(model_folder, 'clf.joblib')
-dump(clf, pickle_model_name)
 
 meta_txt = os.path.join(model_folder, 'meta.txt')
 with open(meta_txt, "w+") as f:

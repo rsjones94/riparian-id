@@ -3,18 +3,15 @@ os.environ['GDAL_DATA'] = os.environ['CONDA_PREFIX'] + r'\Library\share\gdal'
 os.environ['PROJ_LIB'] = os.environ['CONDA_PREFIX'] + r'\Library\share'
 
 import time
-import datetime
-import shutil
 
 import numpy as np
 import pandas as pd
 import gdal
-import glob
-import sqlite3
+from joblib import dump, load
 
 from rasteration import calc_stats_and_ref
 
-def predict_cover(huc_folder, out_folder, feature_cols, decision_tree, epsg):
+def predict_cover(huc_folder, out_folder, feature_cols, clf_file, epsg):
     """
     Generates a raster of landcover using a decision tree
 
@@ -22,7 +19,7 @@ def predict_cover(huc_folder, out_folder, feature_cols, decision_tree, epsg):
         huc_folder: the numeral HUC folder with the data you want to use for the prediction
         out_folder: folder that the data will be written to
         feature_cols: the parameters that the model uses
-        decision_tree: trained decision tree
+        clf_file: path to trained decision tree .joblib
         epsg: projection of the output data
 
     Returns:
@@ -33,6 +30,8 @@ def predict_cover(huc_folder, out_folder, feature_cols, decision_tree, epsg):
     start = time.time()
 
     print(f'Generating prediction for {huc_folder}')
+
+    decision_tree = load(clf_file)
 
     pred_folder = out_folder
     os.mkdir(pred_folder)
@@ -72,20 +71,18 @@ def predict_cover(huc_folder, out_folder, feature_cols, decision_tree, epsg):
         band_nodatas[band_name] = input_band.GetNoDataValue()
         input_array = np.array(input_band.ReadAsArray())
         flat_array = input_array.flatten()
+        
         smask = flat_array != band_nodatas[band_name]
         submasks.append(smask)
-        print(f'smask len: {len(smask)}')
 
         flat_array[flat_array == band_nodatas[band_name]] = np.mean(flat_array) # fill nodata with mean, but could use different val
         band_vals[band_name] = flat_array
-        print(f'Len: {len(flat_array)}')
 
     print('Generating mask')
     mask = np.array(list(map(all, zip(*submasks)))) # logical elementwise AND of all sublists
-    print(f'Mask len: {len(mask)}')
+
     print('Generating dataframe')
     data = pd.DataFrame(band_vals)
-    print(f'Data size: {data.size}')
 
     print('Making predictions')
     y = decision_tree.predict(data)
