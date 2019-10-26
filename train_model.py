@@ -1,7 +1,9 @@
 import os
 import time
+import sys
 
 import pandas as pd
+import sklearn
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import train_test_split
 from sklearn import metrics
@@ -9,6 +11,7 @@ import sqlite3
 from IPython.display import Image
 from sklearn import tree
 import pydotplus
+from joblib import dump, load
 
 from generate_full_predictions import predict_cover
 
@@ -19,15 +22,29 @@ drop_cols = ['cellno','classification','huc12'] # cols not to use as feature cla
 class_col = 'classification'
 class_names = ['Other','Field','Natural','Tree'] # 1, 2, 3, 4
 
-par = r'E:\gen_model'
+model_name = 'test'
+write_model = False
+
+par = r'F:\gen_model'
+training_folder = r'F:\gen_model\training_sets'
+models_folder = r'F:\gen_model\models'
+
 
 ####
+model_folder = os.path.join(models_folder, model_name)
+
+if os.path.exists(model_folder):
+    raise Exception(f'Model {model_folder} exists. Specify new name.')
+
+os.mkdir(model_folder)
+
+
 sas = pd.read_excel(os.path.join(par, r'study_areas.xlsx'), dtype={'HUC12': object})
 sas = sas.set_index('HUC12')
 
 start = time.time()
 
-db_loc = os.path.join(par, 'training.db')
+db_loc = os.path.join(training_folder, 'training.db')
 conn = sqlite3.connect(db_loc)
 
 cursor = conn.cursor()
@@ -75,13 +92,11 @@ dot_data = tree.export_graphviz(model, out_file=None,
 graph = pydotplus.graph_from_dot_data(dot_data)
 # Show graph
 # Image(graph.create_png())
-decision_tree_pic = os.path.join(par, 'decision_tree.pdf')
-graph.write_pdf(decision_tree_pic)
 
 cf = metrics.confusion_matrix(y_test,y_pred)
 
-df_cm = pd.DataFrame(cf, index = [i for i in [j + 'P' for j in class_names]],
-                     columns = [i for i in [j + 'A' for j in class_names]])
+df_cm = pd.DataFrame(cf, index=[i for i in [j + 'P' for j in class_names]],
+                     columns=[i for i in [j + 'A' for j in class_names]])
 print(df_cm)
 
 report = metrics.classification_report(y_test,y_pred, target_names=class_names, output_dict=True)
@@ -100,7 +115,27 @@ for n in class_names:
 """
 final = time.time()
 elap = final-start
-print(f'FINISHED. Elapsed time: {round(elap/60,2)} minutes')
+print(f'Finished training model. Elapsed time: {round(elap/60,2)} minutes')
 
-fol = os.path.join(r'E:\gen_model\study_areas', tab)
-predict_cover(fol, feature_cols, model, decision_tree_pic, sas.loc[tab].EPSG)
+fol = os.path.join(r'F:\gen_model\study_areas', tab)
+of = os.path.join(model_folder, tab)
+
+if write_model:
+    predict_cover(fol, of, feature_cols, model, sas.loc[tab].EPSG)
+
+decision_tree_pic = os.path.join(model_folder, 'decision_tree.pdf')
+graph.write_pdf(decision_tree_pic)
+
+pickle_model_name = os.path.join(model_folder, 'clf.joblib')
+dump(clf, pickle_model_name)
+
+meta_txt = os.path.join(model_folder, 'meta.txt')
+with open(meta_txt, "w+") as f:
+    written = f"""\
+Decision Tree Classifier, built with sklearn v{sklearn.__version__}, Python v{sys.version_info[0]}.{sys.version_info[1]}.{sys.version_info[2]}
+    Trained on {', '.join(present_tables)}
+    Feature columns: {', '.join(feature_cols)}
+    Training percent: {training_perc}''
+    n Pixels per table: {n_rand}
+    """
+    f.write(written)

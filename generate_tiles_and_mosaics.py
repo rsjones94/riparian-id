@@ -37,7 +37,7 @@ refs = { # EPSG codes
 
 ovr = False
 
-par = r'E:\gen_model'
+par = r'F:\gen_model'
 sas = pd.read_excel(os.path.join(par, r'study_areas.xlsx'), dtype={'HUC12': object})
 sas = sas.set_index('HUC12')
 

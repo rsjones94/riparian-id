@@ -12,22 +12,22 @@ import glob
 import sqlite3
 
 
-par = r'E:\gen_model'
+par = r'F:\gen_model'
 sas = pd.read_excel(os.path.join(par, r'study_areas.xlsx'), dtype={'HUC12': object})
 sas = sas.set_index('HUC12')
 
 skippers = ['digsm', 'digel']
 if_exists = 'replace' # fail or replace (what to do if the table exists already in the DB). if fail, skips that table/huc
 
-parent = r'E:\gen_model\study_areas'
+parent = r'F:\gen_model\study_areas'
 subs = ['080102040304'] # which HUCS to extract data from
 
-training_folder = r'E:\gen_model\training_sets'
+training_folder = r'F:\gen_model\training_sets'
 
 start = time.time()
 n_subs = len(subs)
 
-db_loc = os.path.join(par, 'training.db')
+db_loc = os.path.join(training_folder, 'training.db')
 conn = sqlite3.connect(db_loc)
 
 cursor = conn.cursor()

@@ -14,21 +14,27 @@ import sqlite3
 
 from rasteration import calc_stats_and_ref
 
-def predict_cover(huc_folder, feature_cols, decision_tree, tree_pic, epsg):
+def predict_cover(huc_folder, out_folder, feature_cols, decision_tree, epsg):
     """
-    Generates a prediction file for a huc
+    Generates a raster of landcover using a decision tree
 
-    :param huc_folder:
-    :return:
+    Args:
+        huc_folder: the numeral HUC folder with the data you want to use for the prediction
+        out_folder: folder that the data will be written to
+        feature_cols: the parameters that the model uses
+        decision_tree: trained decision tree
+        epsg: projection of the output data
+
+    Returns:
+        nothing
+
     """
 
     start = time.time()
 
     print(f'Generating prediction for {huc_folder}')
 
-    dt = datetime.datetime.now()
-    the_time = f'{dt.year}y-{dt.month}mo-{dt.day}d-{dt.hour}h-{dt.minute}min-{dt.second}s'
-    pred_folder = os.path.join(huc_folder, r'study_LiDAR\products\predictions', the_time)
+    pred_folder = out_folder
     os.mkdir(pred_folder)
 
     # need to make a list of files to use to create the vrt
@@ -90,7 +96,6 @@ def predict_cover(huc_folder, feature_cols, decision_tree, tree_pic, epsg):
 
     print('Calculating statistics and assigning reference')
     calc_stats_and_ref(pred_folder,epsg)
-    shutil.copyfile(tree_pic, os.path.join(pred_folder,'decision_tree.pdf'))
 
     final = time.time()
     elap = final - start
