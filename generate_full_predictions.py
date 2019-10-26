@@ -7,11 +7,10 @@ import time
 import numpy as np
 import pandas as pd
 import gdal
-from joblib import dump, load
 
 from rasteration import calc_stats_and_ref
 
-def predict_cover(huc_folder, out_folder, feature_cols, clf_file, epsg):
+def predict_cover(huc_folder, out_folder, feature_cols, clf, epsg):
     """
     Generates a raster of landcover using a decision tree
 
@@ -19,7 +18,7 @@ def predict_cover(huc_folder, out_folder, feature_cols, clf_file, epsg):
         huc_folder: the numeral HUC folder with the data you want to use for the prediction
         out_folder: folder that the data will be written to
         feature_cols: the parameters that the model uses
-        clf_file: path to trained decision tree .joblib
+        clf: sklearn decision tree
         epsg: projection of the output data
 
     Returns:
@@ -31,7 +30,7 @@ def predict_cover(huc_folder, out_folder, feature_cols, clf_file, epsg):
 
     print(f'Generating prediction for {huc_folder}')
 
-    decision_tree = load(clf_file)
+    decision_tree = clf
 
     pred_folder = out_folder
     os.mkdir(pred_folder)
@@ -71,7 +70,7 @@ def predict_cover(huc_folder, out_folder, feature_cols, clf_file, epsg):
         band_nodatas[band_name] = input_band.GetNoDataValue()
         input_array = np.array(input_band.ReadAsArray())
         flat_array = input_array.flatten()
-        
+
         smask = flat_array != band_nodatas[band_name]
         submasks.append(smask)
 

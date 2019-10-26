@@ -23,7 +23,6 @@ class_col = 'classification'
 class_names = ['Other','Field','Natural','Tree'] # 1, 2, 3, 4
 
 model_name = 'tester'
-write_model = True
 
 par = r'F:\gen_model'
 training_folder = r'F:\gen_model\training_sets'
@@ -37,7 +36,6 @@ if os.path.exists(model_folder):
     raise Exception(f'Model {model_folder} exists. Specify new name.')
 
 os.mkdir(model_folder)
-
 
 sas = pd.read_excel(os.path.join(par, r'study_areas.xlsx'), dtype={'HUC12': object})
 sas = sas.set_index('HUC12')
@@ -120,11 +118,9 @@ print(f'Finished training model. Elapsed time: {round(elap/60,2)} minutes')
 fol = os.path.join(r'F:\gen_model\study_areas', tab)
 of = os.path.join(model_folder, tab)
 
-pickle_model_name = os.path.join(model_folder, 'clf.joblib')
-dump(clf, pickle_model_name)
-
-if write_model:
-    predict_cover(fol, of, feature_cols, pickle_model_name, sas.loc[tab].EPSG)
+pickle_model_name = os.path.join(model_folder, 'clf_package.joblib')
+clf_package = (clf, feature_cols)
+dump(clf_package, pickle_model_name)
 
 decision_tree_pic = os.path.join(model_folder, 'decision_tree.pdf')
 graph.write_pdf(decision_tree_pic)
@@ -136,7 +132,7 @@ with open(meta_txt, "w+") as f:
 Decision Tree Classifier, built with sklearn v{sklearn.__version__}, Python v{sys.version_info[0]}.{sys.version_info[1]}.{sys.version_info[2]}
     Trained on {', '.join(present_tables)}
     Feature columns: {', '.join(feature_cols)}
-    Training percent: {training_perc}''
+    Training percent: {training_perc}
     n Pixels per table: {n_rand}
     """
     f.write(written)
