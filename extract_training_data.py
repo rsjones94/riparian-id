@@ -1,3 +1,5 @@
+import sys
+sys.path.append(r'C:\Program Files (x86)\GDAL\gdal\python')
 import os
 os.environ['GDAL_DATA'] = os.environ['CONDA_PREFIX'] + r'\Library\share\gdal'
 os.environ['PROJ_LIB'] = os.environ['CONDA_PREFIX'] + r'\Library\share'
@@ -10,6 +12,7 @@ from matplotlib import pyplot as plt
 import gdal
 import glob
 import sqlite3
+from gdal import ogr
 
 
 par = r'F:\gen_model'
@@ -23,6 +26,12 @@ parent = r'F:\gen_model\study_areas'
 subs = ['080102040304'] # which HUCS to extract data from
 
 training_folder = r'F:\gen_model\training_sets'
+
+####
+
+code_file = os.path.join(training_folder, 'class_codes.xlsx')
+codes = pd.read_excel(code_file)
+code_dict = {code:num for code,num in zip(codes['t_code'],codes['n_code'])}
 
 start = time.time()
 n_subs = len(subs)
@@ -67,9 +76,31 @@ for k,sub in enumerate(subs):
         file_only = os.path.basename(os.path.normpath(class_file))
         band_dict[i + 1] = file_only
 
-    # convert the vector classes to raster
+    # take the vector shapefile and convert the alphabetic codes to numeric codes
+    print('Mapping codes')
     vector_classes = os.path.join(train_folder, r'classification.shp')
-    rasterize_command = f'gdal_rasterize -tr 1 1 -a Classvalue -a_nodata 128 {vector_classes} {class_file}'
+    new_field_name = 'Classvalue'
+    driver = ogr.GetDriverByName("ESRI Shapefile")
+    dataSource = driver.Open(vector_classes, 1)
+    layer = dataSource.GetLayer()
+    new_field = ogr.FieldDefn(new_field_name, ogr.OFTInteger)
+
+    field_names = [field.name for field in layer.schema]
+
+    if new_field_name in field_names:
+        layer.DeleteField(field_names.index(new_field_name))
+    layer.CreateField(new_field)
+
+    for feature in layer:
+        alpha_code = feature.GetField('Classname')
+        num_code = code_dict[alpha_code]
+        feature.SetField(new_field_name, num_code)
+        layer.SetFeature(feature)
+
+    dataSource = None
+
+    # convert the vector classes to raster
+    rasterize_command = f'gdal_rasterize -tr 1 1 -a Classvalue -a_nodata 0 {vector_classes} {class_file}'
     print(f'Rasterizing vector classes: {rasterize_command}')
     os.system(rasterize_command)
 
@@ -82,7 +113,7 @@ for k,sub in enumerate(subs):
     src = None
 
     training_vrt = os.path.join(train_folder, "training.vrt")
-    vrt_command = f'gdalbuildvrt -separate -te {ulx} {lry} {lrx} {uly} -input_file_list {training_list} {training_vrt}'
+    vrt_command = f'gdalbuildvrt -separate -te {ulx} {lry} {lrx} {uly} -input_file_list {train_txt} {training_vrt}'
     print(f'Generating VRT: {vrt_command}')
     os.system(vrt_command)
 
