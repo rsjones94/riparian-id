@@ -10,6 +10,7 @@ import gdal
 
 from rasteration import calc_stats_and_ref
 
+
 def predict_cover(huc_folder, out_folder, feature_cols, clf, epsg):
     """
     Generates a raster of landcover using a decision tree

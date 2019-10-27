@@ -1,6 +1,7 @@
 import os
 import time
 import sys
+from collections import Counter
 
 import pandas as pd
 import sklearn
@@ -13,21 +14,31 @@ from sklearn import tree
 import pydotplus
 from joblib import dump, load
 
-from generate_full_predictions import predict_cover
+from misc_tools import invert_dict
 
-n_rand = None # number of samples from each table. None for all sample
-training_perc = 0.3
-drop_cols = ['cellno','classification','huc12'] # cols not to use as feature classes
-#feature_cols = ['demsl', 'dighe', 'dsmsl', 'nretu']
-class_col = 'classification'
-class_names = ['Other','Field','Natural','Tree'] # 1, 2, 3, 4
 
-model_name = 'tester'
+model_name = 'tester_imp_and_roofs_bal'
 
 par = r'F:\gen_model'
 training_folder = r'F:\gen_model\training_sets'
 models_folder = r'F:\gen_model\models'
 
+n_rand = None # number of samples from each table. None for all sample
+class_weighting = 'balanced' # None for proportional, 'balanced' to make inversely proportional to class frequency
+training_perc = 0.3
+drop_cols = ['cellno','classification','huc12'] # cols not to use as feature classes
+feature_cols = ['demsl', 'dighe', 'dsmsl', 'nretu']
+class_col = 'classification' # column that contains classification data
+
+
+reclassing = {
+              'trees': ['fo', 'li', 'in'],
+              'nat_veg': ['rv', 'we'],
+              'imperv': ['im'],
+              'roof': ['bt', 'be']
+              }
+
+#reclassing = None
 
 ####
 model_folder = os.path.join(models_folder, model_name)
@@ -59,19 +70,56 @@ else:
 df = pd.read_sql(query, conn)
 conn.close()
 
+###
+
+print(f'Remapping')
+
+co = Counter(df[class_col])
+co = {int(v):val for v,val in co.items()}
+
+code_file = os.path.join(training_folder, 'class_codes.xlsx')
+codes = pd.read_excel(code_file)
+code_dict = {code:num for code,num in zip(codes['t_code'],codes['n_code'])}
+inv_code_dict = {num:code for code,num in zip(codes['t_code'],codes['n_code'])}
+
+present_classes = [inv_code_dict[v] for v in list(co.keys())]
+
+if reclassing is None:
+    reclassing = {cat:[code] for cat,code in zip(codes['category'],codes['t_code'])}
+    perfect_mapping = True
+else:
+    perfect_mapping = False
+
+# we need to make sure that each key in reclassing maps to at least one code present in the classifier column
+any_in = lambda a, b: any(i in b for i in a) # tests if any element of a is in b
+reclassing = {cat:code_list for cat,code_list in reclassing.items() if any_in(code_list,present_classes)}
+
+
+class_names = list(reclassing.keys())
+
+class_map = {i+1: [code_dict[j] for j in l] for i,l in enumerate(reclassing.values())}
+inv_map = invert_dict(class_map)
+
 print('Data read. Training model')
 cols = list(df.columns)
 feature_cols = [i for i in cols if i not in drop_cols]
 ex = df[feature_cols]
-why = df[class_col]
+why = []
+n_classes = len(class_names) # number of SPECIFIED classes; there is another, 'other', if reclass is not none
+for y in df[class_col]:
+    try:
+        why.append(inv_map[y])
+    except KeyError:
+        why.append(n_classes+1)
 
 x_train, x_test, y_train, y_test = train_test_split(ex, why, test_size=1-training_perc, random_state=1)
 # test size fraction used to test trained model against
 
 # Create Decision Tree classifier object
 clf = DecisionTreeClassifier(criterion="entropy",
-                             max_depth=4,
-                             min_samples_leaf=0.1)
+                             max_depth=3,
+                             class_weight=class_weighting)
+                             #min_samples_leaf=0.1)
 # Train Decision Tree classifier
 model = clf.fit(x_train,y_train)
 importances = model.feature_importances_
@@ -83,9 +131,11 @@ print('\nContributions')
 for feat, imp in zip(feature_cols, importances):
     print(f'{feat}: {round(imp*100,2)}%')
 
+if not perfect_mapping:
+    class_names.append('other')
 dot_data = tree.export_graphviz(model, out_file=None,
                                 feature_names=feature_cols,
-                                class_names=['Other','Field','Natural','Tree'])
+                                class_names=class_names)
 # Draw graph
 graph = pydotplus.graph_from_dot_data(dot_data)
 # Show graph
@@ -125,6 +175,11 @@ dump(clf_package, pickle_model_name)
 decision_tree_pic = os.path.join(model_folder, 'decision_tree.pdf')
 graph.write_pdf(decision_tree_pic)
 
+extended_reclass_map = reclassing.copy()
+if not perfect_mapping:
+    extended_reclass_map['other'] = 'ALL OTHERS'
+
+name_mapping = {i+1:na for i,na in enumerate(class_names)}
 
 meta_txt = os.path.join(model_folder, 'meta.txt')
 with open(meta_txt, "w+") as f:
@@ -132,7 +187,9 @@ with open(meta_txt, "w+") as f:
 Decision Tree Classifier, built with sklearn v{sklearn.__version__}, Python v{sys.version_info[0]}.{sys.version_info[1]}.{sys.version_info[2]}
     Trained on {', '.join(present_tables)}
     Feature columns: {', '.join(feature_cols)}
-    Training percent: {training_perc}
+    Training percent: {round(training_perc*100,2)}%
     n Pixels per table: {n_rand}
+    Reclassing: {extended_reclass_map}
+    Mapping: {name_mapping}
     """
     f.write(written)
