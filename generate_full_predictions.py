@@ -5,6 +5,7 @@ os.environ['PROJ_LIB'] = os.environ['CONDA_PREFIX'] + r'\Library\share'
 import time
 
 import numpy as np
+from sklearn import metrics
 import pandas as pd
 import gdal
 
@@ -109,3 +110,35 @@ def predict_cover(huc_folder, out_folder, feature_cols, clf, epsg):
     elap = final - start
     print(f'Prediction complete. Elapsed time: {round(elap / 60, 2)} minutes')
 
+
+def create_predictions_report(y_test, y_pred, class_names, out_loc):
+    """
+    Creates a spreadsheet detailing the prediction's accuracy, precision, etc.
+
+
+    Args:
+        y_test: the actual y cals
+        y_pred: the predicted y vals
+        class_names: names of the class
+        out_loc: where to write
+
+    Returns:
+        None
+
+    """
+
+    cf = metrics.confusion_matrix(y_test, y_pred)
+
+    df_cm = pd.DataFrame(cf, index=[i for i in [j + 'P' for j in class_names]],
+                         columns=[i for i in [j + 'A' for j in class_names]])
+
+    report = metrics.classification_report(y_test, y_pred, target_names=class_names, output_dict=True)
+    df_re = pd.DataFrame(report).transpose()
+
+    df_re['precision']['accuracy'] = np.nan
+    df_re['recall']['accuracy'] = np.nan
+    df_re['support']['accuracy'] = np.nan
+
+    with pd.ExcelWriter(out_loc) as writer:
+        df_re.to_excel(writer, sheet_name='report')
+        df_cm.to_excel(writer, sheet_name='confusion')

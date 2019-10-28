@@ -15,9 +15,10 @@ import pydotplus
 from joblib import dump, load
 
 from misc_tools import invert_dict
+from generate_full_predictions import create_predictions_report
 
 
-model_name = 'tester_imp_and_roofs_bal'
+model_name = 'tn'
 
 par = r'F:\gen_model'
 training_folder = r'F:\gen_model\training_sets'
@@ -34,9 +35,10 @@ class_col = 'classification' # column that contains classification data
 reclassing = {
               'trees': ['fo', 'li', 'in'],
               'nat_veg': ['rv', 'we'],
-              'imperv': ['im'],
-              'roof': ['bt', 'be']
+              'imperv': ['im', 'bt', 'be']
               }
+
+ignore = ['pl']
 
 #reclassing = None
 
@@ -100,6 +102,9 @@ class_names = list(reclassing.keys())
 class_map = {i+1: [code_dict[j] for j in l] for i,l in enumerate(reclassing.values())}
 inv_map = invert_dict(class_map)
 
+ignore_nums = [code_dict[val] for val in ignore] # classes we will not use to train the model
+df = df[~df[class_col].isin(ignore_nums)]
+
 print('Data read. Training model')
 cols = list(df.columns)
 feature_cols = [i for i in cols if i not in drop_cols]
@@ -127,9 +132,7 @@ importances = model.feature_importances_
 y_pred = model.predict(x_test)
 
 print(f'Accuracy: {round(metrics.accuracy_score(y_test, y_pred)*100,2)}%')
-print('\nContributions')
-for feat, imp in zip(feature_cols, importances):
-    print(f'{feat}: {round(imp*100,2)}%')
+contributions = {feat:imp for feat, imp in zip(feature_cols, importances)}
 
 if not perfect_mapping:
     class_names.append('other')
@@ -141,29 +144,14 @@ graph = pydotplus.graph_from_dot_data(dot_data)
 # Show graph
 # Image(graph.create_png())
 
-cf = metrics.confusion_matrix(y_test,y_pred)
+print(f'Finished training model. Writing report')
 
-df_cm = pd.DataFrame(cf, index=[i for i in [j + 'P' for j in class_names]],
-                     columns=[i for i in [j + 'A' for j in class_names]])
-print(df_cm)
+rep_folder = os.path.join(model_folder, 'reports')
+os.mkdir(rep_folder)
 
-report = metrics.classification_report(y_test,y_pred, target_names=class_names, output_dict=True)
-print(metrics.classification_report(y_test,y_pred, target_names=class_names))
-"""
-for n in class_names:
-    nameP = n+'P'
-    nameA = n+'A'
+create_predictions_report(y_test=y_test, y_pred=y_pred, class_names=class_names, out_loc=os.path.join(rep_folder, 'full.xlsx'))
 
-    total_pix = sum(df_cm[nameA])
-    perc_of_sample = round(total_pix/len(y_pred)*100,2)
-    correct_pix = df_cm[nameA].loc[nameP]
-    perc = round(correct_pix/total_pix*100,2)
-
-    print(f'{sum(df_cm[nameA])} ({perc_of_sample}%) {n} pixels, predicted correctly {perc}% of the time')
-"""
-final = time.time()
-elap = final-start
-print(f'Finished training model. Elapsed time: {round(elap/60,2)} minutes')
+###
 
 fol = os.path.join(r'F:\gen_model\study_areas', tab)
 of = os.path.join(model_folder, tab)
@@ -186,10 +174,15 @@ with open(meta_txt, "w+") as f:
     written = f"""\
 Decision Tree Classifier, built with sklearn v{sklearn.__version__}, Python v{sys.version_info[0]}.{sys.version_info[1]}.{sys.version_info[2]}
     Trained on {', '.join(present_tables)}
-    Feature columns: {', '.join(feature_cols)}
     Training percent: {round(training_perc*100,2)}%
-    n Pixels per table: {n_rand}
+    Feature columns: {', '.join(feature_cols)}
+    Contributions: {contributions}
     Reclassing: {extended_reclass_map}
     Mapping: {name_mapping}
+    Ignored classes: {ignore}
     """
     f.write(written)
+
+final = time.time()
+elap = final-start
+print(f'Done. Elapsed time: {round(elap/60,2)} minutes')
