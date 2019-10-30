@@ -18,29 +18,32 @@ from misc_tools import invert_dict
 from generate_full_predictions import create_predictions_report
 
 
-model_name = 'tn'
+model_name = 'tn_md2'
 
 par = r'F:\gen_model'
 training_folder = r'F:\gen_model\training_sets'
 models_folder = r'F:\gen_model\models'
 
-n_rand = None # number of samples from each table. None for all sample
-class_weighting = 'balanced' # None for proportional, 'balanced' to make inversely proportional to class frequency
-training_perc = 0.3
+n_rand = None # number of samples from each table. None for all samples
+
+training_perc = 0.6
 drop_cols = ['cellno','classification','huc12'] # cols not to use as feature classes
 feature_cols = ['demsl', 'dighe', 'dsmsl', 'nretu']
 class_col = 'classification' # column that contains classification data
 
-
+#reclassing = None # take classes as they are
 reclassing = {
               'trees': ['fo', 'li', 'in'],
               'nat_veg': ['rv', 'we'],
               'imperv': ['im', 'bt', 'be']
               }
 
-ignore = ['pl']
+ignore = ['pl'] # classes to exclude from the analysis
 
-#reclassing = None
+class_weighting = 'balanced' # None for proportional, 'balanced' to make inversely proportional to class frequency
+criterion = 'entropy'
+max_depth = 2
+
 
 ####
 model_folder = os.path.join(models_folder, model_name)
@@ -121,8 +124,8 @@ x_train, x_test, y_train, y_test = train_test_split(ex, why, test_size=1-trainin
 # test size fraction used to test trained model against
 
 # Create Decision Tree classifier object
-clf = DecisionTreeClassifier(criterion="entropy",
-                             max_depth=3,
+clf = DecisionTreeClassifier(criterion=criterion,
+                             max_depth=max_depth,
                              class_weight=class_weighting)
                              #min_samples_leaf=0.1)
 # Train Decision Tree classifier
@@ -174,6 +177,7 @@ with open(meta_txt, "w+") as f:
     written = f"""\
 Decision Tree Classifier, built with sklearn v{sklearn.__version__}, Python v{sys.version_info[0]}.{sys.version_info[1]}.{sys.version_info[2]}
     Trained on {', '.join(present_tables)}
+    Weighting type is {class_weighting} and splitting criterion is {criterion}. Max tree depth: {max_depth}
     Training percent: {round(training_perc*100,2)}%
     Feature columns: {', '.join(feature_cols)}
     Contributions: {contributions}

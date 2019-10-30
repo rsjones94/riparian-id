@@ -9,7 +9,7 @@ from generate_full_predictions import predict_cover
 
 par = r'F:\gen_model'
 hucs = ['080102040304']
-model = 'tn'
+model = 'tn_md2'
 
 ###
 
