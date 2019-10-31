@@ -18,18 +18,18 @@ from misc_tools import invert_dict
 from generate_full_predictions import create_predictions_report
 
 
-model_name = 'tn_md2'
+model_name = 'tn'
 
 par = r'F:\gen_model'
 training_folder = r'F:\gen_model\training_sets'
 models_folder = r'F:\gen_model\models'
 
-n_rand = None # number of samples from each table. None for all samples
+n_rand = None  # number of samples from each table. None for all samples
 
 training_perc = 0.6
-drop_cols = ['cellno','classification','huc12'] # cols not to use as feature classes
+drop_cols = ['cellno', 'classification', 'huc12']  # cols not to use as feature classes
 feature_cols = ['demsl', 'dighe', 'dsmsl', 'nretu']
-class_col = 'classification' # column that contains classification data
+class_col = 'classification'  # column that contains classification data
 
 #reclassing = None # take classes as they are
 reclassing = {
@@ -38,11 +38,11 @@ reclassing = {
               'imperv': ['im', 'bt', 'be']
               }
 
-ignore = ['pl'] # classes to exclude from the analysis
+ignore = [] # classes to exclude from the analysis
 
-class_weighting = 'balanced' # None for proportional, 'balanced' to make inversely proportional to class frequency
+class_weighting = 'balanced'  # None for proportional, 'balanced' to make inversely proportional to class frequency
 criterion = 'entropy'
-max_depth = 2
+max_depth = 3
 
 
 ####
