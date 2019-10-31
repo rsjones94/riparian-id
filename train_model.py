@@ -34,10 +34,10 @@ class_col = 'classification'  # column that contains classification data
 reclassing = {
               'trees': ['fo', 'li', 'in'],
               'nat_veg': ['rv', 'we'],
-              'imperv': ['im', 'bt', 'be']
+              'buildings': ['bt', 'be']
               }
 
-ignore = ['wa', 'pl'] # classes to exclude from the analysis
+ignore = ['wa'] # classes to exclude from the analysis
 
 class_weighting = 'balanced'  # None for proportional, 'balanced' to make inversely proportional to class frequency
 criterion = 'entropy'

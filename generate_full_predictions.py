@@ -91,7 +91,7 @@ def predict_cover(huc_folder, out_folder, feature_cols, clf, epsg):
     resh = np.reshape(masked, (ny,nx))
 
     print('Writing predictions')
-    out = os.path.join(pred_folder, 'prediction.tif')
+    out = os.path.join(pred_folder, f'prediction_{huc_folder}.tif')
     driver = gdal.GetDriverByName("GTiff")
     outdata = driver.Create(out, nx, ny, 1, gdal.GDT_Int16)
     outdata.SetGeoTransform(img.GetGeoTransform())  ##sets same geotransform as input
