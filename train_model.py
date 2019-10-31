@@ -28,7 +28,6 @@ n_rand = None  # number of samples from each table. None for all samples
 
 training_perc = 0.6
 drop_cols = ['cellno', 'classification', 'huc12']  # cols not to use as feature classes
-feature_cols = ['demsl', 'dighe', 'dsmsl', 'nretu']
 class_col = 'classification'  # column that contains classification data
 
 #reclassing = None # take classes as they are
@@ -38,7 +37,7 @@ reclassing = {
               'imperv': ['im', 'bt', 'be']
               }
 
-ignore = [] # classes to exclude from the analysis
+ignore = ['wa', 'pl'] # classes to exclude from the analysis
 
 class_weighting = 'balanced'  # None for proportional, 'balanced' to make inversely proportional to class frequency
 criterion = 'entropy'
