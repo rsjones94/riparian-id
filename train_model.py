@@ -26,21 +26,22 @@ models_folder = r'F:\gen_model\models'
 
 n_rand = None  # number of samples from each table. None for all samples
 
-training_perc = 0.6
-drop_cols = ['cellno', 'classification', 'huc12']  # cols not to use as feature classes
+training_perc = 0.7
+drop_cols = ['cellno', 'classification', 'huc12']  # cols not to use as feature classes. note that dem and dsm are already not included
+# 'demro', 'demsl', 'dsmro', 'dsmsl'
 class_col = 'classification'  # column that contains classification data
 
 #reclassing = None # take classes as they are
 reclassing = {
               'trees': ['fo', 'li', 'in'],
-              'nat_veg': ['rv', 'we'],
-              'buildings': ['bt', 'be']
+              'nat_veg': ['rv', 'we']
               }
+#, 'roof': ['be', 'bt']
 
 ignore = ['wa'] # classes to exclude from the analysis
 
 class_weighting = 'balanced'  # None for proportional, 'balanced' to make inversely proportional to class frequency
-criterion = 'entropy'
+criterion = 'entropy'  # entropy or gini
 max_depth = 3
 
 
@@ -126,7 +127,6 @@ x_train, x_test, y_train, y_test = train_test_split(ex, why, test_size=1-trainin
 clf = DecisionTreeClassifier(criterion=criterion,
                              max_depth=max_depth,
                              class_weight=class_weighting)
-                             #min_samples_leaf=0.1)
 # Train Decision Tree classifier
 model = clf.fit(x_train,y_train)
 importances = model.feature_importances_
@@ -134,7 +134,7 @@ importances = model.feature_importances_
 y_pred = model.predict(x_test)
 
 print(f'Accuracy: {round(metrics.accuracy_score(y_test, y_pred)*100,2)}%')
-contributions = {feat:imp for feat, imp in zip(feature_cols, importances)}
+contributions = {feat:f'{round(imp*100,2)}%' for feat, imp in zip(feature_cols, importances)}
 
 if not perfect_mapping:
     class_names.append('other')
@@ -151,7 +151,7 @@ print(f'Finished training model. Writing report')
 rep_folder = os.path.join(model_folder, 'reports')
 os.mkdir(rep_folder)
 
-create_predictions_report(y_test=y_test, y_pred=y_pred, class_names=class_names, out_loc=os.path.join(rep_folder, 'full.xlsx'))
+create_predictions_report(y_test=y_test, y_pred=y_pred, class_names=class_names, out_loc=os.path.join(rep_folder, f'full_report_{model_name}.xlsx'))
 
 ###
 

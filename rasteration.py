@@ -83,14 +83,14 @@ def rasteration(data_folder, products_folder, resolution=1, remove_buildings=Tru
                 print(f'A problem occurred while attempting to modify {file}. Skipping')
                 problems.append(file)
                 continue
-            wbt.lidar_tin_gridding(i=filename, output=nreturnsname, parameter='user data', returns='last', resolution=resolution,
-                                   exclude_cls='7,13,14,18')
+            wbt.lidar_tin_gridding(i=filename, output=nreturnsname, parameter='user data',
+                                   returns='last', resolution=resolution, exclude_cls='7,18')  # , exclude_cls='7,13,14,18'
 
         # make the digital elevation model (trees, etc. removed)
         # only keep ground road water
         if not os.path.exists(demname):
-            wbt.lidar_tin_gridding(i=filename, output=demname, parameter='elevation', returns='last', resolution=resolution,
-                                   exclude_cls=keep([2,9,11]))
+            wbt.lidar_tin_gridding(i=filename, output=demname, parameter='elevation',
+                                   returns='last', resolution=resolution, exclude_cls='7,18')  # , exclude_cls=keep([2,9,11])
 
         # make the digital surface model
         # keep everything except noise and wires and maybe buildings
@@ -100,8 +100,8 @@ def rasteration(data_folder, products_folder, resolution=1, remove_buildings=Tru
                 cls = '6,7,13,14,18'
             else:
                 cls = '7,13,14,18'
-            wbt.lidar_tin_gridding(i=filename, output=dsmname, parameter='elevation', returns='first', resolution=resolution,
-                                   exclude_cls=cls)
+            wbt.lidar_tin_gridding(i=filename, output=dsmname, parameter='elevation',
+                                   returns='first', resolution=resolution, exclude_cls='7,18')  # , exclude_cls=cls
 
         """
         # make the digital height model
