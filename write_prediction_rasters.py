@@ -18,6 +18,7 @@ sas = sas.set_index('HUC12')
 
 for model in models:
     for huc in hucs:
+        print(f'Generating {model}:{huc}')
         fol = os.path.join(par, 'study_areas', huc)
         model_folder = os.path.join(par, 'models', model)
         clf, feature_cols = load(os.path.join(model_folder, 'clf_package.joblib'))
