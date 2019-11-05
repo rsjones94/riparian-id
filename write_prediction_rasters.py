@@ -8,7 +8,7 @@ from joblib import dump, load
 from generate_full_predictions import predict_cover
 
 hucs = ['080102040304']
-model = 'tn_noroof'
+model = 'tn'
 
 ###
 par = r'F:\gen_model'

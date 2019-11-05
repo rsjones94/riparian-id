@@ -396,9 +396,11 @@ def big_derivs(folder):
     dhmroughnessname = os.path.join(folder, 'dhmro.tif')
     nreturnsroughnessname = os.path.join(folder, 'nrero.tif')
 
+    #nreteturnspercentovermeanname = os.path.join(folder, 'nrepo.tif') # number of returns, percent over mean
+
     # cubic convolution resampling
-    dhmresamplename = os.path.join(folder, 'dhmcu.tif')
-    nreturnsresamplename = os.path.join(folder, 'nrecu.tif')
+    # dhmresamplename = os.path.join(folder, 'dhmcu.tif')
+    # nreturnsresamplename = os.path.join(folder, 'nrecu.tif')
 
     block_print()  # wbt has EXTREMELY obnoxious printouts
     # make the digital height model
@@ -456,6 +458,13 @@ def big_derivs(folder):
         os.system(command)
     else:
         print(f'{nreturnsroughnessname} exists. Skipping generation....')
+
+    """
+    if not os.path.exists(nreteturnspercentovermeanname):
+        pass
+    else:
+        print(f'{nreteturnspercentovermeanname} exists. Skipping generation....')
+    """
 
     """
 

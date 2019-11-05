@@ -13,50 +13,99 @@ from IPython.display import Image
 from sklearn import tree
 import pydotplus
 from joblib import dump, load
+import shutil
 
 from misc_tools import invert_dict
 from generate_full_predictions import create_predictions_report
 
-
-model_name = 'tn'
-
 par = r'F:\gen_model'
 training_folder = r'F:\gen_model\training_sets'
 models_folder = r'F:\gen_model\models'
-
 n_rand = None  # number of samples from each table. None for all samples
 
-training_perc = 0.7
-drop_cols = ['cellno', 'classification', 'huc12']  # cols not to use as feature classes. note that dem and dsm are already not included
-# 'demro', 'demsl', 'dsmro', 'dsmsl'
-class_col = 'classification'  # column that contains classification data
+model_a = {
+    'model_name': 'tn_full_training_set',
 
-#reclassing = None # take classes as they are
-reclassing = {
-              'trees': ['fo', 'li', 'in'],
-              'nat_veg': ['rv', 'we']
-              }
-#, 'roof': ['be', 'bt']
+    'training_perc': 0.7,  # percent of data to train on
+    'drop_cols': ['cellno', 'classification', 'huc12'],
+    # cols not to use as feature classes. note that dem and dsm are already not included
+    'class_col': 'classification',  # column that contains classification data
 
-ignore = ['wa'] # classes to exclude from the analysis
+    'reclassing': {
+        'trees': ['fo', 'li', 'in'],
+        'nat_veg': ['rv', 'we']
+    },  # classes to cram together. If None, take classes as they are
 
-class_weighting = 'balanced'  # None for proportional, 'balanced' to make inversely proportional to class frequency
-criterion = 'entropy'  # entropy or gini
-max_depth = 3
+    'ignore': ['wa'],  # classes to exclude from the analysis entirely
 
+    'class_weighting': 'balanced',
+    # None for proportional, 'balanced' to make inversely proportional to class frequency
+    'criterion': 'gini',  # entropy or gini
+    'max_depth': 3,  # max levels to decision tree
+    'notes':
+        """
+        This model uses all available training data to attempt to classify trees, natural veg and other
+        """
+}
+
+model_b = {
+    'model_name': 'tn_limited_training_set',
+
+    'training_perc': 0.7,  # percent of data to train on
+    'drop_cols': ['cellno', 'classification', 'huc12', 'demro', 'dhmro', 'dsmro', 'nrero'],
+    # cols not to use as feature classes. note that dem and dsm are already not included
+    'class_col': 'classification',  # column that contains classification data
+
+    'reclassing': {
+        'trees': ['fo', 'li', 'in'],
+        'nat_veg': ['rv', 'we']
+    },  # classes to cram together. If None, take classes as they are
+
+    'ignore': ['wa'],  # classes to exclude from the analysis entirely
+
+    'class_weighting': 'balanced',
+    # None for proportional, 'balanced' to make inversely proportional to class frequency
+    'criterion': 'gini',  # entropy or gini
+    'max_depth': 3,  # max levels to decision tree
+    'notes':
+        """
+        This model restricts training data types to those that can be easily generated in Arc.
+        Attempts to classify trees, natural veg and other
+        """
+}
+
+model_param_list = [model_a, model_b]
 
 ####
-model_folder = os.path.join(models_folder, model_name)
 
-if os.path.exists(model_folder):
-    raise Exception(f'Model {model_folder} exists. Specify new name.')
+for mod in model_param_list:
+    model_folder = os.path.join(models_folder, mod['model_name'])
+    while os.path.exists(model_folder):
+        in_command = input(
+            f'Model {mod["model_name"]} exists. Specify a new name, [q]uit, [o]verwrite, or [i]nspect model parameters')
+        if in_command == 'q':
+            raise Exception('User terminated model training')
+        elif in_command == 'o':
+            print(f'Overwriting {mod["model_name"]}')
+            shutil.rmtree(model_folder)
+        elif in_command == 'i':
+            print('\n')
+            for p, x in mod.items():
+                print(f'{p}: {x}')
+            print('\n')
+        else:
+            mod['model_name'] = in_command
+            model_folder = os.path.join(models_folder, mod['model_name'])
+    os.mkdir(model_folder)
 
-os.mkdir(model_folder)
+    train_txt = os.path.join(model_folder, 'notes.txt')
+    with open(train_txt, "w+") as f:
+        f.write(mod['notes'])
 
 sas = pd.read_excel(os.path.join(par, r'study_areas.xlsx'), dtype={'HUC12': object})
 sas = sas.set_index('HUC12')
 
-start = time.time()
+start_time = time.time()
 
 db_loc = os.path.join(training_folder, 'training.db')
 conn = sqlite3.connect(db_loc)
@@ -67,6 +116,7 @@ present_tables = [f[0] for f in cursor.fetchall()]
 cursor.close()
 
 tab = present_tables[0]
+
 print(f'Reading {tab}')
 if n_rand:
     query = f"SELECT * FROM '{tab}' WHERE cellno IN (SELECT cellno FROM '{tab}' ORDER BY RANDOM() LIMIT {n_rand})"
@@ -75,117 +125,153 @@ else:
 df = pd.read_sql(query, conn)
 conn.close()
 
-###
+read_time = time.time()
 
-print(f'Remapping')
-
-co = Counter(df[class_col])
-co = {int(v):val for v,val in co.items()}
-
-code_file = os.path.join(training_folder, 'class_codes.xlsx')
-codes = pd.read_excel(code_file)
-code_dict = {code:num for code,num in zip(codes['t_code'],codes['n_code'])}
-inv_code_dict = {num:code for code,num in zip(codes['t_code'],codes['n_code'])}
-
-present_classes = [inv_code_dict[v] for v in list(co.keys())]
-
-if reclassing is None:
-    reclassing = {cat:[code] for cat,code in zip(codes['category'],codes['t_code'])}
-    perfect_mapping = True
-else:
-    perfect_mapping = False
-
-# we need to make sure that each key in reclassing maps to at least one code present in the classifier column
-any_in = lambda a, b: any(i in b for i in a) # tests if any element of a is in b
-reclassing = {cat:code_list for cat,code_list in reclassing.items() if any_in(code_list,present_classes)}
-
-
-class_names = list(reclassing.keys())
-
-class_map = {i+1: [code_dict[j] for j in l] for i,l in enumerate(reclassing.values())}
-inv_map = invert_dict(class_map)
-
-ignore_nums = [code_dict[val] for val in ignore] # classes we will not use to train the model
-df = df[~df[class_col].isin(ignore_nums)]
-
-print('Data read. Training model')
-cols = list(df.columns)
-feature_cols = [i for i in cols if i not in drop_cols]
-ex = df[feature_cols]
-why = []
-n_classes = len(class_names) # number of SPECIFIED classes; there is another, 'other', if reclass is not none
-for y in df[class_col]:
-    try:
-        why.append(inv_map[y])
-    except KeyError:
-        why.append(n_classes+1)
-
-x_train, x_test, y_train, y_test = train_test_split(ex, why, test_size=1-training_perc, random_state=1)
-# test size fraction used to test trained model against
-
-# Create Decision Tree classifier object
-clf = DecisionTreeClassifier(criterion=criterion,
-                             max_depth=max_depth,
-                             class_weight=class_weighting)
-# Train Decision Tree classifier
-model = clf.fit(x_train,y_train)
-importances = model.feature_importances_
-# Predict the response for test dataset
-y_pred = model.predict(x_test)
-
-print(f'Accuracy: {round(metrics.accuracy_score(y_test, y_pred)*100,2)}%')
-contributions = {feat:f'{round(imp*100,2)}%' for feat, imp in zip(feature_cols, importances)}
-
-if not perfect_mapping:
-    class_names.append('other')
-dot_data = tree.export_graphviz(model, out_file=None,
-                                feature_names=feature_cols,
-                                class_names=class_names)
-# Draw graph
-graph = pydotplus.graph_from_dot_data(dot_data)
-# Show graph
-# Image(graph.create_png())
-
-print(f'Finished training model. Writing report')
-
-rep_folder = os.path.join(model_folder, 'reports')
-os.mkdir(rep_folder)
-
-create_predictions_report(y_test=y_test, y_pred=y_pred, class_names=class_names, out_loc=os.path.join(rep_folder, f'full_report_{model_name}.xlsx'))
+read_elap = read_time - start_time
+print(f'Data read. Elapsed time: {round(read_elap / 60, 2)} minutes')
 
 ###
+for mod in model_param_list:
 
-fol = os.path.join(r'F:\gen_model\study_areas', tab)
-of = os.path.join(model_folder, tab)
+    train_start = time.time()
 
-pickle_model_name = os.path.join(model_folder, 'clf_package.joblib')
-clf_package = (clf, feature_cols)
-dump(clf_package, pickle_model_name)
+    model_name = mod['model_name']
 
-decision_tree_pic = os.path.join(model_folder, 'decision_tree.pdf')
-graph.write_pdf(decision_tree_pic)
+    training_perc = mod['training_perc']
+    drop_cols = mod['drop_cols']
+    class_col = mod['class_col']
+    reclassing = mod['reclassing']
+    ignore = mod['ignore']
+    class_weighting = mod['class_weighting']
+    criterion = mod['criterion']
+    max_depth = mod['max_depth']
 
-extended_reclass_map = reclassing.copy()
-if not perfect_mapping:
-    extended_reclass_map['other'] = 'ALL OTHERS'
+    model_folder = os.path.join(models_folder, model_name)
+    print('\n')
+    print(f'Initializing model {model_name}')
 
-name_mapping = {i+1:na for i,na in enumerate(class_names)}
+    print(f'Remapping')
 
-meta_txt = os.path.join(model_folder, 'meta.txt')
-with open(meta_txt, "w+") as f:
-    written = f"""\
-Decision Tree Classifier, built with sklearn v{sklearn.__version__}, Python v{sys.version_info[0]}.{sys.version_info[1]}.{sys.version_info[2]}
-    Trained on {', '.join(present_tables)}
-    Weighting type is {class_weighting} and splitting criterion is {criterion}. Max tree depth: {max_depth}
-    Training percent: {round(training_perc*100,2)}%
-    Feature columns: {', '.join(feature_cols)}
-    Contributions: {contributions}
-    Reclassing: {extended_reclass_map}
-    Mapping: {name_mapping}
-    Ignored classes: {ignore}
-    """
-    f.write(written)
+    co = Counter(df[class_col])
+    co = {int(v): val for v, val in co.items()}
 
-final = time.time()
-elap = final-start
-print(f'Done. Elapsed time: {round(elap/60,2)} minutes')
+    code_file = os.path.join(training_folder, 'class_codes.xlsx')
+    codes = pd.read_excel(code_file)
+    code_dict = {code: num for code, num in zip(codes['t_code'], codes['n_code'])}
+    inv_code_dict = {num: code for code, num in zip(codes['t_code'], codes['n_code'])}
+
+    present_classes = [inv_code_dict[v] for v in list(co.keys())]
+
+    if reclassing is None:
+        reclassing = {cat: [code] for cat, code in zip(codes['category'], codes['t_code'])}
+        perfect_mapping = True
+    else:
+        perfect_mapping = False
+
+    # we need to make sure that each key in reclassing maps to at least one code present in the classifier column
+    any_in = lambda a, b: any(i in b for i in a)  # tests if any element of a is in b
+    reclassing = {cat: code_list for cat, code_list in reclassing.items() if any_in(code_list, present_classes)}
+
+    class_names = list(reclassing.keys())
+
+    class_map = {i + 1: [code_dict[j] for j in l] for i, l in enumerate(reclassing.values())}
+    inv_map = invert_dict(class_map)
+
+    ignore_nums = [code_dict[val] for val in ignore]  # classes we will not use to train the model
+    df = df[~df[class_col].isin(ignore_nums)]
+
+    print('Training model')
+    cols = list(df.columns)
+    feature_cols = [i for i in cols if i not in drop_cols]
+    ex = df[feature_cols]
+    why = []
+    n_classes = len(class_names)  # number of SPECIFIED classes; there is another, 'other', if reclass is not none
+    for y in df[class_col]:
+        try:
+            why.append(inv_map[y])
+        except KeyError:
+            why.append(n_classes + 1)
+
+    x_train, x_test, y_train, y_test = train_test_split(ex, why, test_size=1 - training_perc, random_state=1)
+    # test size fraction used to test trained model against
+
+    # Create Decision Tree classifier object
+    clf = DecisionTreeClassifier(criterion=criterion,
+                                 max_depth=max_depth,
+                                 class_weight=class_weighting)
+    # Train Decision Tree classifier
+    model = clf.fit(x_train, y_train)
+    importances = model.feature_importances_
+    # Predict the response for test dataset
+    y_pred = model.predict(x_test)
+
+    print(f'Accuracy: {round(metrics.accuracy_score(y_test, y_pred) * 100, 2)}%')
+    contributions = {feat: f'{round(imp * 100, 2)}%' for feat, imp in zip(feature_cols, importances)}
+
+    if not perfect_mapping:
+        class_names.append('other')
+    dot_data = tree.export_graphviz(model, out_file=None,
+                                    feature_names=feature_cols,
+                                    class_names=class_names)
+    # Draw graph
+    graph = pydotplus.graph_from_dot_data(dot_data)
+    # Show graph
+    # Image(graph.create_png())
+
+    print(f'Finished training model. Writing report')
+
+    rep_folder = os.path.join(model_folder, 'reports')
+    os.mkdir(rep_folder)
+
+    create_predictions_report(y_test=y_test, y_pred=y_pred, class_names=class_names,
+                              out_loc=os.path.join(rep_folder, f'full_report_{model_name}.xlsx'))
+
+    ###
+
+    fol = os.path.join(r'F:\gen_model\study_areas', tab)
+    of = os.path.join(model_folder, tab)
+
+    pickle_clf_name = os.path.join(model_folder, 'clf_package.joblib')
+    clf_package = (clf, feature_cols)
+    dump(clf_package, pickle_clf_name)
+
+    pickle_param_name = os.path.join(model_folder, 'param_package.joblib')
+    param_package = mod
+    dump(param_package, pickle_param_name)
+
+    decision_tree_pic = os.path.join(model_folder, 'decision_tree.pdf')
+    graph.write_pdf(decision_tree_pic)
+
+    extended_reclass_map = reclassing.copy()
+    if not perfect_mapping:
+        extended_reclass_map['other'] = 'ALL OTHERS'
+
+    name_mapping = {i + 1: na for i, na in enumerate(class_names)}
+
+    meta_txt = os.path.join(model_folder, 'meta.txt')
+    with open(meta_txt, "w+") as f:
+        written = f"""\
+    Decision Tree Classifier, built with sklearn v{sklearn.__version__}, Python v{sys.version_info[0]}.{
+        sys.version_info[1]}.{sys.version_info[2]}
+        Trained on {', '.join(present_tables)}
+        Weighting type is {class_weighting} and splitting criterion is {criterion}. Max tree depth: {max_depth}
+        Training percent: {round(training_perc * 100, 2)}%
+        Feature columns: {', '.join(feature_cols)}
+        Contributions: {contributions}
+        Reclassing: {extended_reclass_map}
+        Mapping: {name_mapping}
+        Ignored classes: {ignore}
+        """
+        f.write(written)
+
+    train_time = time.time()
+    train_elap = train_time - train_start
+    print(f'{model_name} trained. Elapsed time: {round(train_elap / 60, 2)} minutes')
+
+final_time = time.time()
+all_train_elap = train_time - read_time
+total_elap = train_time - start_time
+
+print(
+    f'Complete. Read time: {round(read_elap / 60, 2)}m. Train time: {round(all_train_elap / 60, 2)}m. '
+    f'Total time: {round(total_elap / 60, 2)}m')
