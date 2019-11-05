@@ -16,8 +16,8 @@ par = r'F:\gen_model'
 sas = pd.read_excel(os.path.join(par, r'study_areas.xlsx'), dtype={'HUC12': object})
 sas = sas.set_index('HUC12')
 
-for model in models:
-    for huc in hucs:
+for huc in hucs:
+    for model in models: # need to make it so the read data is reused for different models
         print(f'Generating {model}:{huc}')
         fol = os.path.join(par, 'study_areas', huc)
         model_folder = os.path.join(par, 'models', model)
