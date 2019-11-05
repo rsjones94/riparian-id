@@ -273,5 +273,6 @@ all_train_elap = train_time - read_time
 total_elap = train_time - start_time
 
 print(
+    f'\n'
     f'Complete. Read time: {round(read_elap / 60, 2)}m. Train time: {round(all_train_elap / 60, 2)}m. '
     f'Total time: {round(total_elap / 60, 2)}m')
