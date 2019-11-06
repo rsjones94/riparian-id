@@ -258,7 +258,7 @@ def copy_tiles(data_folder, target_folder, overwrite=False):
 
 def mosaic_folders(parent, cut_fol, shpf, spatial_ref, path_to_gdal=r'C:\OSGeo4W64\bin'):
     """
-    Mosaics all images in every subfolder in the parent folder. Writes output to the parent folder
+    Mosaics all images in every subfolder in the parent folder. Writes output to the parent folder. Also generates derivatives
 
     Args:
         parent: the parent directory
