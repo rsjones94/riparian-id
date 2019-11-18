@@ -25,10 +25,10 @@ models_folder = r'F:\gen_model\models'
 n_rand = None  # number of samples from each table. None for all samples
 
 model_a = {
-    'model_name': 'tn_me_depth4',
+    'model_name': 'tn_me_simpletraining',
 
     'training_perc': 0.7,  # percent of data to train on
-    'drop_cols': ['cellno', 'classification', 'huc12'],
+    'drop_cols': ['demro', 'dsmro', 'dhmro', 'nretu', 'nrero'],
     # cols not to use as feature classes. note that dem and dsm are already not included
     'class_col': 'classification',  # column that contains classification data
     'training_hucs': None, # what HUCS to train on. If None, use all available
@@ -46,37 +46,11 @@ model_a = {
     'max_depth': 4,  # max levels to decision tree
     'notes':
         """
-        This model uses all available training data to attempt to classify trees, natural veg and other
+        This model uses only elevation and derived slope data (no returns or roughnesses) to attempt to classify trees, natural veg and other
         """
 }
 
-model_b = {
-    'model_name': 'tn_me_depth3',
-
-    'training_perc': 0.7,  # percent of data to train on
-    'drop_cols': ['cellno', 'classification', 'huc12'],
-    # cols not to use as feature classes. note that dem and dsm are already not included
-    'class_col': 'classification',  # column that contains classification data
-    'training_hucs': None, # what HUCS to train on. If None, use all available
-
-    'reclassing': {
-        'trees': ['fo', 'li', 'in'],
-        'nat_veg': ['rv', 'we']
-    },  # classes to cram together. If None, take classes as they are
-
-    'ignore': ['wa'],  # classes to exclude from the analysis entirely
-
-    'class_weighting': 'balanced',
-    # None for proportional, 'balanced' to make inversely proportional to class frequency
-    'criterion': 'gini',  # entropy or gini
-    'max_depth': 3,  # max levels to decision tree
-    'notes':
-        """
-        This model uses all available training data to attempt to classify trees, natural veg and other
-        """
-}
-
-model_param_list = [model_a, model_b]
+model_param_list = [model_a]
 
 ####
 
@@ -148,6 +122,7 @@ for mod in model_param_list:
 
     training_perc = mod['training_perc']
     drop_cols = mod['drop_cols']
+    drop_cols.extend(['cellno', 'classification', 'huc12', 'weight'])
     class_col = mod['class_col']
     reclassing = mod['reclassing']
     ignore = mod['ignore']
@@ -159,7 +134,7 @@ for mod in model_param_list:
     print('\n')
     print(f'Initializing model {model_name}')
 
-    print(f'Reforming training_data')
+    print(f'Reforming training data')
 
     training_df_list = [read_tables[huc] for huc in training_hucs]
     df = pd.concat(training_df_list, ignore_index=True)
