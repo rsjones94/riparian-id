@@ -112,7 +112,7 @@ def predict_cover(huc_folder, out_folder, feature_cols, clf, epsg):
     print(f'Prediction complete. Elapsed time: {round(elap / 60, 2)} minutes')
 
 
-def create_predictions_report(y_test, y_pred, class_names, out_loc):
+def create_predictions_report(y_test, y_pred, class_names, out_loc, wts):
     """
     Creates a spreadsheet detailing the prediction's accuracy, precision, etc.
 
@@ -122,6 +122,7 @@ def create_predictions_report(y_test, y_pred, class_names, out_loc):
         y_pred: the predicted y vals
         class_names: names of the class
         out_loc: where to write
+        wts: the weights for the classification report
 
     Returns:
         None
@@ -133,7 +134,10 @@ def create_predictions_report(y_test, y_pred, class_names, out_loc):
     df_cm = pd.DataFrame(cf, index=[i for i in [j + 'P' for j in class_names]],
                          columns=[i for i in [j + 'A' for j in class_names]])
 
-    report = metrics.classification_report(y_test, y_pred, target_names=class_names, output_dict=True)
+    report = metrics.classification_report(y_test, y_pred,
+                                           sample_weight=wts,
+                                           target_names=class_names,
+                                           output_dict=True)
     df_re = pd.DataFrame(report).transpose()
 
     df_re['precision']['accuracy'] = np.nan

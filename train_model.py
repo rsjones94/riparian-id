@@ -14,6 +14,7 @@ from sklearn import tree
 import pydotplus
 from joblib import dump, load
 import shutil
+import numpy as np
 
 from misc_tools import invert_dict
 from generate_full_predictions import create_predictions_report
@@ -24,12 +25,13 @@ models_folder = r'F:\gen_model\models'
 n_rand = None  # number of samples from each table. None for all samples
 
 model_a = {
-    'model_name': 'tn_full_training_set',
+    'model_name': 'tn_me_test',
 
     'training_perc': 0.7,  # percent of data to train on
     'drop_cols': ['cellno', 'classification', 'huc12'],
     # cols not to use as feature classes. note that dem and dsm are already not included
     'class_col': 'classification',  # column that contains classification data
+    'training_hucs': None, # what HUCS to train on. If None, use all available
 
     'reclassing': {
         'trees': ['fo', 'li', 'in'],
@@ -41,40 +43,14 @@ model_a = {
     'class_weighting': 'balanced',
     # None for proportional, 'balanced' to make inversely proportional to class frequency
     'criterion': 'gini',  # entropy or gini
-    'max_depth': 3,  # max levels to decision tree
+    'max_depth': 4,  # max levels to decision tree
     'notes':
         """
         This model uses all available training data to attempt to classify trees, natural veg and other
         """
 }
 
-model_b = {
-    'model_name': 'tn_limited_training_set',
-
-    'training_perc': 0.7,  # percent of data to train on
-    'drop_cols': ['cellno', 'classification', 'huc12', 'demro', 'dhmro', 'dsmro', 'nrero'],
-    # cols not to use as feature classes. note that dem and dsm are already not included
-    'class_col': 'classification',  # column that contains classification data
-
-    'reclassing': {
-        'trees': ['fo', 'li', 'in'],
-        'nat_veg': ['rv', 'we']
-    },  # classes to cram together. If None, take classes as they are
-
-    'ignore': ['wa'],  # classes to exclude from the analysis entirely
-
-    'class_weighting': 'balanced',
-    # None for proportional, 'balanced' to make inversely proportional to class frequency
-    'criterion': 'gini',  # entropy or gini
-    'max_depth': 3,  # max levels to decision tree
-    'notes':
-        """
-        This model restricts training data types to those that can be easily generated in Arc.
-        Attempts to classify trees, natural veg and other
-        """
-}
-
-model_param_list = [model_a, model_b]
+model_param_list = [model_a]
 
 ####
 
@@ -115,14 +91,16 @@ cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
 present_tables = [f[0] for f in cursor.fetchall()]
 cursor.close()
 
-tab = present_tables[0]
-
-print(f'Reading {tab}')
-if n_rand:
-    query = f"SELECT * FROM '{tab}' WHERE cellno IN (SELECT cellno FROM '{tab}' ORDER BY RANDOM() LIMIT {n_rand})"
-else:
-    query = f"SELECT * FROM '{tab}'"
-df = pd.read_sql(query, conn)
+read_tables = {}
+for tab in present_tables:
+    print(f'Reading {tab}')
+    if n_rand:
+        query = f"SELECT * FROM '{tab}' WHERE cellno IN (SELECT cellno FROM '{tab}' ORDER BY RANDOM() LIMIT {n_rand})"
+    else:
+        query = f"SELECT * FROM '{tab}'"
+    df = pd.read_sql(query, conn)
+    df['weight'] = 1 / len(df.index)
+    read_tables[tab]= df
 conn.close()
 
 read_time = time.time()
@@ -137,6 +115,11 @@ for mod in model_param_list:
 
     model_name = mod['model_name']
 
+    if mod['training_hucs'] is None:
+        training_hucs = present_tables
+    else:
+        training_hucs = mod['training_hucs']
+
     training_perc = mod['training_perc']
     drop_cols = mod['drop_cols']
     class_col = mod['class_col']
@@ -149,6 +132,11 @@ for mod in model_param_list:
     model_folder = os.path.join(models_folder, model_name)
     print('\n')
     print(f'Initializing model {model_name}')
+
+    print(f'Reforming training_data')
+
+    training_df_list = [read_tables[huc] for huc in training_hucs]
+    df = pd.concat(training_df_list, ignore_index=True)
 
     print(f'Remapping')
 
@@ -183,7 +171,6 @@ for mod in model_param_list:
     print('Training model')
     cols = list(df.columns)
     feature_cols = [i for i in cols if i not in drop_cols]
-    ex = df[feature_cols]
     why = []
     n_classes = len(class_names)  # number of SPECIFIED classes; there is another, 'other', if reclass is not none
     for y in df[class_col]:
@@ -192,7 +179,7 @@ for mod in model_param_list:
         except KeyError:
             why.append(n_classes + 1)
 
-    x_train, x_test, y_train, y_test = train_test_split(ex, why, test_size=1 - training_perc, random_state=1)
+    x_train, x_test, y_train, y_test = train_test_split(df, why, test_size=1-training_perc, random_state=None)
     # test size fraction used to test trained model against
 
     # Create Decision Tree classifier object
@@ -200,10 +187,10 @@ for mod in model_param_list:
                                  max_depth=max_depth,
                                  class_weight=class_weighting)
     # Train Decision Tree classifier
-    model = clf.fit(x_train, y_train)
+    model = clf.fit(x_train[feature_cols], y_train, sample_weight=np.array(x_train['weight']))
     importances = model.feature_importances_
     # Predict the response for test dataset
-    y_pred = model.predict(x_test)
+    y_pred = model.predict(x_test[feature_cols])
 
     print(f'Accuracy: {round(metrics.accuracy_score(y_test, y_pred) * 100, 2)}%')
     contributions = {feat: f'{round(imp * 100, 2)}%' for feat, imp in zip(feature_cols, importances)}
@@ -218,18 +205,27 @@ for mod in model_param_list:
     # Show graph
     # Image(graph.create_png())
 
-    print(f'Finished training model. Writing report')
+    print(f'Finished training model. Writing reports')
 
     rep_folder = os.path.join(model_folder, 'reports')
     os.mkdir(rep_folder)
 
-    create_predictions_report(y_test=y_test, y_pred=y_pred, class_names=class_names,
-                              out_loc=os.path.join(rep_folder, f'full_report_{model_name}.xlsx'))
+    create_predictions_report(y_test=y_test, y_pred=y_pred,
+                              class_names=class_names,
+                              out_loc=os.path.join(rep_folder, f'full_report_{model_name}.xlsx'),
+                              wts=np.array(x_test['weight']))
+
+    for shed in training_hucs:
+        mask = x_test['huc12'] == shed
+        y_test = np.array(x_test['classification'][mask])
+        wts = np.array(x_test['weight'][mask])
+        y_pred = model.predict(x_test[feature_cols][mask])
+        create_predictions_report(y_test=y_test, y_pred=y_pred,
+                                  class_names=class_names,
+                                  out_loc=os.path.join(rep_folder, f'{shed}_report_{model_name}.xlsx'),
+                                  wts=wts)
 
     ###
-
-    fol = os.path.join(r'F:\gen_model\study_areas', tab)
-    of = os.path.join(model_folder, tab)
 
     pickle_clf_name = os.path.join(model_folder, 'clf_package.joblib')
     clf_package = (clf, feature_cols)
@@ -253,7 +249,7 @@ for mod in model_param_list:
         written = f"""\
     Decision Tree Classifier, built with sklearn v{sklearn.__version__}, Python v{sys.version_info[0]}.{
         sys.version_info[1]}.{sys.version_info[2]}
-        Trained on {', '.join(present_tables)}
+        Trained on {', '.join(training_hucs)}
         Weighting type is {class_weighting} and splitting criterion is {criterion}. Max tree depth: {max_depth}
         Training percent: {round(training_perc * 100, 2)}%
         Feature columns: {', '.join(feature_cols)}

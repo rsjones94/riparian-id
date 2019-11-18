@@ -23,7 +23,8 @@ skippers = ['digsm', 'digel']
 if_exists = 'replace' # fail or replace (what to do if the table exists already in the DB). if fail, skips that table/huc
 
 parent = r'F:\gen_model\study_areas'
-subs = ['080102040304'] # which HUCS to extract data from
+#subs = ['080102040304', '010500021301'] # which HUCS to extract data from
+subs = ['010500021301']
 
 training_folder = r'F:\gen_model\training_sets'
 
@@ -175,7 +176,7 @@ for k,sub in enumerate(subs):
     out_data.to_sql(name=sub, con=conn, index=True, index_label='cellno', chunksize=50000, if_exists=if_exists)
     print('Establishing index')
     c = conn.cursor()
-    c.execute(f"CREATE UNIQUE INDEX idx_cellno ON '{sub}' (cellno)")
+    #  c.execute(f"CREATE UNIQUE INDEX idx_cellno ON '{sub}' (cellno)")
     c.close()
 
     intermediate2 = time.time()
