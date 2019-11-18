@@ -25,7 +25,7 @@ models_folder = r'F:\gen_model\models'
 n_rand = None  # number of samples from each table. None for all samples
 
 model_a = {
-    'model_name': 'tn_me_test',
+    'model_name': 'tn_me_depth4',
 
     'training_perc': 0.7,  # percent of data to train on
     'drop_cols': ['cellno', 'classification', 'huc12'],
@@ -50,7 +50,33 @@ model_a = {
         """
 }
 
-model_param_list = [model_a]
+model_b = {
+    'model_name': 'tn_me_depth3',
+
+    'training_perc': 0.7,  # percent of data to train on
+    'drop_cols': ['cellno', 'classification', 'huc12'],
+    # cols not to use as feature classes. note that dem and dsm are already not included
+    'class_col': 'classification',  # column that contains classification data
+    'training_hucs': None, # what HUCS to train on. If None, use all available
+
+    'reclassing': {
+        'trees': ['fo', 'li', 'in'],
+        'nat_veg': ['rv', 'we']
+    },  # classes to cram together. If None, take classes as they are
+
+    'ignore': ['wa'],  # classes to exclude from the analysis entirely
+
+    'class_weighting': 'balanced',
+    # None for proportional, 'balanced' to make inversely proportional to class frequency
+    'criterion': 'gini',  # entropy or gini
+    'max_depth': 3,  # max levels to decision tree
+    'notes':
+        """
+        This model uses all available training data to attempt to classify trees, natural veg and other
+        """
+}
+
+model_param_list = [model_a, model_b]
 
 ####
 
@@ -210,20 +236,21 @@ for mod in model_param_list:
     rep_folder = os.path.join(model_folder, 'reports')
     os.mkdir(rep_folder)
 
+    print(f'(general report)')
     create_predictions_report(y_test=y_test, y_pred=y_pred,
                               class_names=class_names,
                               out_loc=os.path.join(rep_folder, f'full_report_{model_name}.xlsx'),
                               wts=np.array(x_test['weight']))
 
     for shed in training_hucs:
+        print(f'({shed} report)')
         mask = x_test['huc12'] == shed
-        y_test = np.array(x_test['classification'][mask])
-        wts = np.array(x_test['weight'][mask])
-        y_pred = model.predict(x_test[feature_cols][mask])
-        create_predictions_report(y_test=y_test, y_pred=y_pred,
+        sub_y_test = [c for c,m in zip(y_test,mask) if m]
+        sub_y_pred = [p for p,m in zip(y_pred,mask) if m]
+        create_predictions_report(y_test=sub_y_test, y_pred=sub_y_pred,
                                   class_names=class_names,
                                   out_loc=os.path.join(rep_folder, f'{shed}_report_{model_name}.xlsx'),
-                                  wts=wts)
+                                  wts=None)
 
     ###
 

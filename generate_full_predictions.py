@@ -112,7 +112,7 @@ def predict_cover(huc_folder, out_folder, feature_cols, clf, epsg):
     print(f'Prediction complete. Elapsed time: {round(elap / 60, 2)} minutes')
 
 
-def create_predictions_report(y_test, y_pred, class_names, out_loc, wts):
+def create_predictions_report(y_test, y_pred, class_names, out_loc, wts=None):
     """
     Creates a spreadsheet detailing the prediction's accuracy, precision, etc.
 
