@@ -25,7 +25,7 @@ models_folder = r'F:\gen_model\models'
 n_rand = None  # number of samples from each table. None for all samples
 
 model_a = {
-    'model_name': 'tn_me_simpletraining',
+    'model_name': 'tn_me_simpletraining_depth3',
 
     'training_perc': 0.7,  # percent of data to train on
     'drop_cols': ['demro', 'dsmro', 'dhmro', 'nretu', 'nrero'],
@@ -43,7 +43,7 @@ model_a = {
     'class_weighting': 'balanced',
     # None for proportional, 'balanced' to make inversely proportional to class frequency
     'criterion': 'gini',  # entropy or gini
-    'max_depth': 4,  # max levels to decision tree
+    'max_depth': 3,  # max levels to decision tree
     'notes':
         """
         This model uses only elevation and derived slope data (no returns or roughnesses) to attempt to classify trees, natural veg and other
