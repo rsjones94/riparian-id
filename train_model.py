@@ -31,7 +31,7 @@ model_a = {
     'drop_cols': ['demro', 'dsmro', 'dhmro', 'nretu', 'nrero'],
     # cols not to use as feature classes. note that dem and dsm are already not included
     'class_col': 'classification',  # column that contains classification data
-    'training_hucs': None, # what HUCS to train on. If None, use all available
+    'training_hucs': None, # what HUCS to train on. If None, use all available. Otherwise input is list of strings
 
     'reclassing': {
         'trees': ['fo', 'li', 'in'],
