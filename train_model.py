@@ -24,11 +24,40 @@ training_folder = r'F:\gen_model\training_sets'
 models_folder = r'F:\gen_model\models'
 n_rand = None  # number of samples from each table. None for all samples
 
+
 model_a = {
-    'model_name': 'tn_me_simpletraining_depth6',
+    'model_name': 'fullset_depth6_splitPT0025_bin',
 
     'training_perc': 0.7,  # percent of data to train on
-    'drop_cols': ['demro', 'dsmro', 'dhmro', 'nretu', 'nrero'],
+    'min_split': 0.025, # minimum percentage of samples that a leaf must have to exist
+    'drop_cols': ['nretu', 'nrero'],
+    # cols not to use as feature classes. note that dem and dsm are already not included
+    'class_col': 'classification',  # column that contains classification data
+    'training_hucs': None, # what HUCS to train on. If None, use all available. Otherwise input is list of strings
+
+    'reclassing': {
+        'trees': ['fo', 'li', 'in']
+    },  # classes to cram together. If None, take classes as they are
+
+    'ignore': ['wa', 'cr'],  # classes to exclude from the analysis entirely
+
+    'class_weighting': 'balanced',
+    # None for proportional, 'balanced' to make inversely proportional to class frequency
+    'criterion': 'gini',  # entropy or gini
+    'max_depth': 6,  # max levels to decision tree
+    'notes':
+        """
+        This model uses all data to train a binary classification scheme. No Haralick textures
+        """
+}
+
+
+model_b = {
+    'model_name': 'fullset_depth6_splitPT0025_tern',
+
+    'training_perc': 0.7,  # percent of data to train on
+    'min_split': 0.025, # minimum percentage of samples that a leaf must have to exist
+    'drop_cols': ['nretu', 'nrero'],
     # cols not to use as feature classes. note that dem and dsm are already not included
     'class_col': 'classification',  # column that contains classification data
     'training_hucs': None, # what HUCS to train on. If None, use all available. Otherwise input is list of strings
@@ -38,7 +67,7 @@ model_a = {
         'nat_veg': ['rv', 'we']
     },  # classes to cram together. If None, take classes as they are
 
-    'ignore': ['wa'],  # classes to exclude from the analysis entirely
+    'ignore': ['wa', 'cr'],  # classes to exclude from the analysis entirely
 
     'class_weighting': 'balanced',
     # None for proportional, 'balanced' to make inversely proportional to class frequency
@@ -46,141 +75,12 @@ model_a = {
     'max_depth': 6,  # max levels to decision tree
     'notes':
         """
-        This model uses only elevation and derived slope data (no returns or roughnesses) to attempt to classify trees, natural veg and other
+        This model uses all data to train a ternary classification scheme. No Haralick textures
         """
 }
 
-model_b = {
-    'model_name': 'tn_me_simpletraining_depth5',
 
-    'training_perc': 0.7,  # percent of data to train on
-    'drop_cols': ['demro', 'dsmro', 'dhmro', 'nretu', 'nrero'],
-    # cols not to use as feature classes. note that dem and dsm are already not included
-    'class_col': 'classification',  # column that contains classification data
-    'training_hucs': None, # what HUCS to train on. If None, use all available
-
-    'reclassing': {
-        'trees': ['fo', 'li', 'in'],
-        'nat_veg': ['rv', 'we']
-    },  # classes to cram together. If None, take classes as they are
-
-    'ignore': ['wa'],  # classes to exclude from the analysis entirely
-
-    'class_weighting': 'balanced',
-    # None for proportional, 'balanced' to make inversely proportional to class frequency
-    'criterion': 'gini',  # entropy or gini
-    'max_depth': 5,  # max levels to decision tree
-    'notes':
-        """
-        This model uses only elevation and derived slope data (no returns or roughnesses) to attempt to classify trees, natural veg and other
-        """
-}
-
-model_c = {
-    'model_name': 'tn_me_simpletraining_depth4',
-
-    'training_perc': 0.7,  # percent of data to train on
-    'drop_cols': ['demro', 'dsmro', 'dhmro', 'nretu', 'nrero'],
-    # cols not to use as feature classes. note that dem and dsm are already not included
-    'class_col': 'classification',  # column that contains classification data
-    'training_hucs': None, # what HUCS to train on. If None, use all available
-
-    'reclassing': {
-        'trees': ['fo', 'li', 'in'],
-        'nat_veg': ['rv', 'we']
-    },  # classes to cram together. If None, take classes as they are
-
-    'ignore': ['wa'],  # classes to exclude from the analysis entirely
-
-    'class_weighting': 'balanced',
-    # None for proportional, 'balanced' to make inversely proportional to class frequency
-    'criterion': 'gini',  # entropy or gini
-    'max_depth': 4,  # max levels to decision tree
-    'notes':
-        """
-        This model uses only elevation and derived slope data (no returns or roughnesses) to attempt to classify trees, natural veg and other
-        """
-}
-
-model_d = {
-    'model_name': 'tn_simpletraining_depth6',
-
-    'training_perc': 0.7,  # percent of data to train on
-    'drop_cols': ['demro', 'dsmro', 'dhmro', 'nretu', 'nrero'],
-    # cols not to use as feature classes. note that dem and dsm are already not included
-    'class_col': 'classification',  # column that contains classification data
-    'training_hucs': ['080102040304'], # what HUCS to train on. If None, use all available
-
-    'reclassing': {
-        'trees': ['fo', 'li', 'in'],
-        'nat_veg': ['rv', 'we']
-    },  # classes to cram together. If None, take classes as they are
-
-    'ignore': ['wa'],  # classes to exclude from the analysis entirely
-
-    'class_weighting': 'balanced',
-    # None for proportional, 'balanced' to make inversely proportional to class frequency
-    'criterion': 'gini',  # entropy or gini
-    'max_depth': 6,  # max levels to decision tree
-    'notes':
-        """
-        This model uses only elevation and derived slope data (no returns or roughnesses) to attempt to classify trees, natural veg and other
-        """
-}
-
-model_e = {
-    'model_name': 'tn_simpletraining_depth5',
-
-    'training_perc': 0.7,  # percent of data to train on
-    'drop_cols': ['demro', 'dsmro', 'dhmro', 'nretu', 'nrero'],
-    # cols not to use as feature classes. note that dem and dsm are already not included
-    'class_col': 'classification',  # column that contains classification data
-    'training_hucs': ['080102040304'], # what HUCS to train on. If None, use all available
-
-    'reclassing': {
-        'trees': ['fo', 'li', 'in'],
-        'nat_veg': ['rv', 'we']
-    },  # classes to cram together. If None, take classes as they are
-
-    'ignore': ['wa'],  # classes to exclude from the analysis entirely
-
-    'class_weighting': 'balanced',
-    # None for proportional, 'balanced' to make inversely proportional to class frequency
-    'criterion': 'gini',  # entropy or gini
-    'max_depth': 5,  # max levels to decision tree
-    'notes':
-        """
-        This model uses only elevation and derived slope data (no returns or roughnesses) to attempt to classify trees, natural veg and other
-        """
-}
-
-model_f = {
-    'model_name': 'tn_simpletraining_depth4',
-
-    'training_perc': 0.7,  # percent of data to train on
-    'drop_cols': ['demro', 'dsmro', 'dhmro', 'nretu', 'nrero'],
-    # cols not to use as feature classes. note that dem and dsm are already not included
-    'class_col': 'classification',  # column that contains classification data
-    'training_hucs': ['080102040304'], # what HUCS to train on. If None, use all available
-
-    'reclassing': {
-        'trees': ['fo', 'li', 'in'],
-        'nat_veg': ['rv', 'we']
-    },  # classes to cram together. If None, take classes as they are
-
-    'ignore': ['wa'],  # classes to exclude from the analysis entirely
-
-    'class_weighting': 'balanced',
-    # None for proportional, 'balanced' to make inversely proportional to class frequency
-    'criterion': 'gini',  # entropy or gini
-    'max_depth': 4,  # max levels to decision tree
-    'notes':
-        """
-        This model uses only elevation and derived slope data (no returns or roughnesses) to attempt to classify trees, natural veg and other
-        """
-}
-
-model_param_list = [model_a, model_b, model_c, model_d, model_e, model_f]
+model_param_list = [model_a, model_b]
 
 ####
 
@@ -259,6 +159,7 @@ for mod in model_param_list:
     class_weighting = mod['class_weighting']
     criterion = mod['criterion']
     max_depth = mod['max_depth']
+    min_split = mod['min_split']
 
     model_folder = os.path.join(models_folder, model_name)
     print('\n')
@@ -386,6 +287,7 @@ for mod in model_param_list:
         Trained on {', '.join(training_hucs)}
         Weighting type is {class_weighting} and splitting criterion is {criterion}. Max tree depth: {max_depth}
         Training percent: {round(training_perc * 100, 2)}%
+        Minimum split: {round(min_split * 100, 2)}%
         Feature columns: {', '.join(feature_cols)}
         Contributions: {contributions}
         Reclassing: {extended_reclass_map}

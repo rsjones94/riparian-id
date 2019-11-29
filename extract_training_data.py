@@ -24,7 +24,7 @@ if_exists = 'replace' # fail or replace (what to do if the table exists already 
 
 parent = r'F:\gen_model\study_areas'
 #subs = ['080102040304', '010500021301'] # which HUCS to extract data from
-subs = ['010500021301']
+subs = ['010500021301', '030902040303', '070801050901', '080102040304', '130202090102', '140801040103', '180500020905']
 
 training_folder = r'F:\gen_model\training_sets'
 

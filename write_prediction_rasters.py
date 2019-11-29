@@ -7,8 +7,8 @@ from joblib import dump, load
 
 from generate_full_predictions import predict_cover
 
-hucs = ['080102040304']
-models = ['tn_full_training_set', 'tn_limited_training_set']
+hucs = ['010500021301', '030902040303', '070801050901', '080102040304', '130202090102', '140801040103', '180500020905']
+models = ['fullset_depth6_splitPT0025_tern', 'fullset_depth6_splitPT0025_bin']
 
 ###
 par = r'F:\gen_model'

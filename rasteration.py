@@ -369,6 +369,45 @@ def calc_stats_and_ref(folder, spatial_ref, path_to_gdal=r'C:\OSGeo4W64\bin'):
             print(f'Run stats command: {stat_command}')
             os.system(stat_command)
 
+def generate_haralicks(in_file, out_folder, out_basename, min_val, max_val, n_bin,
+                    path_to_gdal=r'C:\OSGeo4W64\bin', path_to_orfeo=r'C:\OTB-7.0.0-Win64\bin'):
+    """
+    Creates and splits the 8 basic Haralick textures (Energy, Entropy, Correlation, Inverse Difference Moment,
+    Inertia, Cluster Shade, Cluster Prominence and Haralick Correlation) from the Orfeo Haralick output and writes each
+    to their own image
+
+    Args:
+        in_file: the tif to create textures for
+        out_folder: folder to write the textures to
+        out_basename: the root name that each texture will share. The suffixes are eg, et, co, id, in, cs, cp, hc
+        min_val: the minimum value to bin the tif into
+        max_val: the maximum value to bin the tif into
+        n_bin: the number of bins
+        path_to_gdal: the gdal bin that actually works. not the annoying conda gdal that can't load bigtiffs
+        path_to_orfeo: path to the orfeo bin
+
+    Returns:
+        None
+
+    """
+    di = os.getcwd()
+    orf_int = os.path.join(out_folder,'orfeo_intermediate.tif')
+    os.chdir(path_to_orfeo)
+    orfeo_command = f'otbcli_HaralickTextureExtraction -parameters.min {min_val} -parameters.max {max_val} ' \
+              f'-parameters.nbbin {n_bin} -in {in_file} -out {orf_int}'
+    print(f'Generating Haralick textures: {orfeo_command}')
+    os.system(orfeo_command)
+
+    os.chdir(path_to_gdal)
+    suffixes = ['eg', 'et', 'co', 'id', 'in', 'cs', 'cp', 'hc']
+    for i,suf in zip(range(1,9),suffixes):
+        out_file = os.path.join(out_folder,f'{out_basename}{suf}.tif')
+        gdal_command = f'gdal_translate -b {i} {orf_int} {out_file}'
+        print(f'Splitting Haralick texture {i}: {gdal_command}')
+        os.system(gdal_command)
+    os.remove(orf_int)
+    os.chdir(di)
+
 
 def big_derivs(folder):
     """
@@ -395,6 +434,8 @@ def big_derivs(folder):
     dsmroughnessname = os.path.join(folder, 'dsmro.tif')
     dhmroughnessname = os.path.join(folder, 'dhmro.tif')
     nreturnsroughnessname = os.path.join(folder, 'nrero.tif')
+
+    dhmenergyname = os.path.join(folder, 'dhmeg.tif')
 
     #nreteturnspercentovermeanname = os.path.join(folder, 'nrepo.tif') # number of returns, percent over mean
 
@@ -458,6 +499,11 @@ def big_derivs(folder):
         os.system(command)
     else:
         print(f'{nreturnsroughnessname} exists. Skipping generation....')
+
+    if not os.path.exists(dhmenergyname):
+        generate_haralicks(dhmname, folder, 'dhm', 0, 32, 64) # generate textures using dhm, max height of 32 and bins of 0.5
+    else:
+        print(f'{dhmenergyname} exists. Skipping generation....')
 
     """
     if not os.path.exists(nreteturnspercentovermeanname):
