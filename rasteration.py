@@ -271,7 +271,6 @@ def mosaic_folders(parent, cut_fol, shpf, spatial_ref, path_to_gdal=r'C:\OSGeo4W
         None
 
     """
-    # path_to_gdal=r'C:\OSGeo4W64\bin'
     wd = os.getcwd()
     subs = [f.name for f in os.scandir(parent) if f.is_dir()]
 
@@ -335,6 +334,7 @@ def mosaic_folders(parent, cut_fol, shpf, spatial_ref, path_to_gdal=r'C:\OSGeo4W
 
         print(f'Processing time: {intermediate_elap} seconds. Folder {i+1} of {n_subs} complete. Estimated time remaining: '
               f'{estimated_total_time} minutes')
+
 
     big_derivs(parent)
     calc_stats_and_ref(parent, spatial_ref, path_to_gdal)

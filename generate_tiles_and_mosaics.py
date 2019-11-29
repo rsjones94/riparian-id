@@ -57,7 +57,7 @@ for i,sub in enumerate(folders):
     cut_shape = os.path.join(working,'study_area','study_area_r.shp')
 
     ref_code = sas.loc[sub].EPSG
-    mosaic_folders(copy_target, cut_target, cut_shape, ref_code)
+    mosaic_folders(copy_target, None, None, ref_code)
 
 en = time.time()
 
