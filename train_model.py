@@ -64,7 +64,7 @@ model_b = {
 
     'reclassing': {
         'trees': ['fo', 'li', 'in'],
-        'nat_veg': ['rv', 'we']
+        'herb_veg': ['rv', 'we']
     },  # classes to cram together. If None, take classes as they are
 
     'ignore': ['wa', 'cr'],  # classes to exclude from the analysis entirely

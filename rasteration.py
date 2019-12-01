@@ -402,7 +402,7 @@ def generate_haralicks(in_file, out_folder, out_basename, min_val, max_val, n_bi
     suffixes = ['eg', 'et', 'co', 'id', 'in', 'cs', 'cp', 'hc']
     for i,suf in zip(range(1,9),suffixes):
         out_file = os.path.join(out_folder,f'{out_basename}{suf}.tif')
-        gdal_command = f'gdal_translate -b {i} {orf_int} {out_file}'
+        gdal_command = f'gdal_translate -of Gtiff -b {i} {orf_int} {out_file}'
         print(f'Splitting Haralick texture {i}: {gdal_command}')
         os.system(gdal_command)
     os.remove(orf_int)
@@ -447,6 +447,7 @@ def big_derivs(folder):
     # make the digital height model
 
     if not os.path.exists(dhmname):
+        print(f'Generating DHM')
         wbt.subtract(dsmname, demname, dhmname)
     else:
         print(f'{dhmname} exists. Skipping generation....')
@@ -454,18 +455,21 @@ def big_derivs(folder):
     # make the DEM slope raster
 
     if not os.path.exists(demslopename):
+        print(f'Generating DEM slope')
         wbt.slope(dem=demname, output=demslopename)
     else:
         print(f'{demslopename} exists. Skipping generation....')
 
     # make the DSM slope raster
     if not os.path.exists(dsmslopename):
+        print(f'Generating DSM slope')
         wbt.slope(dem=dsmname, output=dsmslopename)
     else:
         print(f'{dsmslopename} exists. Skipping generation....')
 
     # make the DHM slope raster
     if not os.path.exists(dhmslopename):
+        print(f'Generating DHM slope')
         wbt.slope(dem=dhmname, output=dhmslopename)
     else:
         print(f'{dhmslopename} exists. Skipping generation....')
