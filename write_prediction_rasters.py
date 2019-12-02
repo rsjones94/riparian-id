@@ -18,7 +18,7 @@ sas = sas.set_index('HUC12')
 
 for huc in hucs:
     for model in models: # need to make it so the read data is reused for different models
-        print(f'Generating {model}:{huc}')
+        print(f'Generating {model}: {huc}')
         fol = os.path.join(par, 'study_areas', huc)
         model_folder = os.path.join(par, 'models', model)
         clf, feature_cols = load(os.path.join(model_folder, 'clf_package.joblib'))

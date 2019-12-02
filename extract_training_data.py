@@ -19,7 +19,7 @@ par = r'F:\gen_model'
 sas = pd.read_excel(os.path.join(par, r'study_areas.xlsx'), dtype={'HUC12': object})
 sas = sas.set_index('HUC12')
 
-skippers = ['digsm', 'digel']
+skippers = ['digsm', 'digel', 'nretu', 'nrero']
 if_exists = 'replace' # fail or replace (what to do if the table exists already in the DB). if fail, skips that table/huc
 
 parent = r'F:\gen_model\study_areas'
@@ -101,7 +101,7 @@ for k,sub in enumerate(subs):
     dataSource = None
 
     # convert the vector classes to raster
-    rasterize_command = f'gdal_rasterize -tr 1 1 -a Classvalue -a_nodata 0 {vector_classes} {class_file}'
+    rasterize_command = f'gdal_rasterize -tr 1 1 -a Classvalue -a_nodata -9999 {vector_classes} {class_file}'
     print(f'Rasterizing vector classes: {rasterize_command}')
     os.system(rasterize_command)
 
@@ -141,6 +141,21 @@ for k,sub in enumerate(subs):
     print(f'Output contains {n_bands} columns with {round(mils_of_pts,3)} million points each'
           f'\nTotal points: {round(n_bands*mils_of_pts,3)} million')
 
+    for band in range(img.RasterCount):
+        band += 1
+        band_name = band_dict[band][:-4]
+        if band_name == 'classification':
+            print(f'Generating mask')
+            mask_band = img.GetRasterBand(band)
+            # input_band.SetSpatialFilter(vector_classes)
+            mask_nodata = mask_band.GetNoDataValue()
+            mask_array = np.array(mask_band.ReadAsArray())
+            flat_mask = mask_array.flatten()
+            flat_mask = [1 if i != mask_nodata else 0 for i in flat_mask]
+            del mask_array
+            break
+
+
     band_vals = {}
     band_nodatas = {}
     for band in range(img.RasterCount):
@@ -152,10 +167,12 @@ for k,sub in enumerate(subs):
 
         print(f'Flattening {band_name}')
         input_band = img.GetRasterBand(band)
+        #input_band.SetSpatialFilter(vector_classes)
         band_nodatas[band_name] = input_band.GetNoDataValue()
         input_array = np.array(input_band.ReadAsArray())
         flat_array = input_array.flatten()
-        band_vals[band_name] = flat_array
+        pared_array = [i for i,j in zip(flat_array, flat_mask) if j == 1] # we'll pare down the data here to reduce memory usage
+        band_vals[band_name] = pared_array
 
     print('Generating dataframe')
     out_data = pd.DataFrame(band_vals)
@@ -169,8 +186,9 @@ for k,sub in enumerate(subs):
     print(f'Query: {query}')
     out_data.query(query, inplace=True)
     pared_rows = len(out_data)
-    print(f'Dataframe pruned from {orig_rows} rows to {pared_rows} rows (reduced to '
-          f'{round(pared_rows/orig_rows*100,2)}% of original)')
+    orig_len = len(flat_mask)
+    print(f'Dataframe pruned from {orig_len} rows to {pared_rows} rows (reduced to '
+          f'{round(pared_rows/orig_len*100,2)}% of original)')
 
     print('Writing to DB')
     out_data.to_sql(name=sub, con=conn, index=True, index_label='cellno', chunksize=50000, if_exists=if_exists)

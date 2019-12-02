@@ -26,12 +26,12 @@ n_rand = None  # number of samples from each table. None for all samples
 
 
 model_a = {
-    'model_name': 'fullset_depth6_splitPT0025_bin',
+    'model_name': 'fullset_depth8_splitPT0025_bin',
 
     'training_perc': 0.7,  # percent of data to train on
     'min_split': 0.025, # minimum percentage of samples that a leaf must have to exist
-    'drop_cols': ['nretu', 'nrero'],
-    # cols not to use as feature classes. note that dem and dsm are already not included
+    'drop_cols': [],
+    # cols not to use as feature classes. note that dem and dsm are already not included (and others depending on how DB was assembled)
     'class_col': 'classification',  # column that contains classification data
     'training_hucs': None, # what HUCS to train on. If None, use all available. Otherwise input is list of strings
 
@@ -44,7 +44,7 @@ model_a = {
     'class_weighting': 'balanced',
     # None for proportional, 'balanced' to make inversely proportional to class frequency
     'criterion': 'gini',  # entropy or gini
-    'max_depth': 6,  # max levels to decision tree
+    'max_depth': 8,  # max levels to decision tree
     'notes':
         """
         This model uses all data to train a binary classification scheme. No Haralick textures
@@ -53,12 +53,12 @@ model_a = {
 
 
 model_b = {
-    'model_name': 'fullset_depth6_splitPT0025_tern',
+    'model_name': 'fullset_depth8_splitPT0025_tern',
 
     'training_perc': 0.7,  # percent of data to train on
     'min_split': 0.025, # minimum percentage of samples that a leaf must have to exist
-    'drop_cols': ['nretu', 'nrero'],
-    # cols not to use as feature classes. note that dem and dsm are already not included
+    'drop_cols': [],
+    # cols not to use as feature classes. note that dem and dsm are already not included (and others depending on how DB was assembled)
     'class_col': 'classification',  # column that contains classification data
     'training_hucs': None, # what HUCS to train on. If None, use all available. Otherwise input is list of strings
 
@@ -72,7 +72,7 @@ model_b = {
     'class_weighting': 'balanced',
     # None for proportional, 'balanced' to make inversely proportional to class frequency
     'criterion': 'gini',  # entropy or gini
-    'max_depth': 6,  # max levels to decision tree
+    'max_depth': 8,  # max levels to decision tree
     'notes':
         """
         This model uses all data to train a ternary classification scheme. No Haralick textures
