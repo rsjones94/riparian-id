@@ -130,7 +130,7 @@ for tab in present_tables:
         query = f"SELECT * FROM '{tab}'"
     df = pd.read_sql(query, conn)
     df['weight'] = 1 / len(df.index)
-    read_tables[tab]= df
+    read_tables[tab] = df
 conn.close()
 
 read_time = time.time()

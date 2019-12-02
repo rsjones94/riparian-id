@@ -23,7 +23,7 @@ refs = { # EPSG codes
         }
 """
 
-ovr_tiles = False
+ovr_tiles = True
 ovr_copy = True
 
 par = r'F:\gen_model'
