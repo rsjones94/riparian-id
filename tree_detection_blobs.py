@@ -5,6 +5,7 @@ from skimage.feature import blob_dog, blob_log, blob_doh
 from skimage.color import rgb2gray
 from skimage import io
 import matplotlib.pyplot as plt
+from scipy import stats
 
 import numpy as np
 from scipy import ndimage as ndi
@@ -50,6 +51,45 @@ ax.set_axis_off()
 
 plt.tight_layout()
 plt.show()
+
+
+y, x = blobs_log[:,0], blobs_log[:,1]
+y = 1500-y
+# Define the borders
+deltaX = (max(x) - min(x))/10
+deltaY = (max(y) - min(y))/10
+xmin = min(x) - deltaX
+xmax = max(x) + deltaX
+ymin = min(y) - deltaY
+ymax = max(y) + deltaY
+print(xmin, xmax, ymin, ymax)
+# Create meshgrid
+xx, yy = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
+
+positions = np.vstack([xx.ravel(), yy.ravel()])
+values = np.vstack([x, y])
+kernel = stats.gaussian_kde(values)
+f = np.reshape(kernel(positions).T, xx.shape)*10e9
+
+fig = plt.figure(figsize=(8,8))
+ax = fig.gca()
+ax.set_xlim(xmin, xmax)
+ax.set_ylim(ymin, ymax)
+cfset = ax.contourf(xx, yy, f, cmap='coolwarm')
+ax.imshow(np.rot90(f), cmap='coolwarm', extent=[xmin, xmax, ymin, ymax])
+cset = ax.contour(xx, yy, f, colors='k')
+ax.clabel(cset, inline=1, fontsize=10)
+ax.set_xlabel('X')
+ax.set_ylabel('Y')
+plt.title('2D Gaussian Kernel density estimation')
+for blob in blobs_log:
+    ya, xa, r = blob
+    #c = plt.Circle((x, y), 3, color='red', linewidth=1, fill=False)
+    c = plt.Circle((xa, 1500-ya), 5, color='red', linewidth=1, fill=True)
+    ax.add_patch(c)
+
+plt.show()
+
 print('Done')
 
 """
