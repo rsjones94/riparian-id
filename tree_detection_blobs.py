@@ -11,11 +11,11 @@ from scipy import ndimage as ndi
 from skimage.morphology import watershed
 from skimage.feature import peak_local_max
 
-
+# ref : https://scikit-image.org/docs/dev/auto_examples/features_detection/plot_blob.html
 #image = data.hubble_deep_field()[0:500, 0:500]
 #image_gray = rgb2gray(image)
 
-im_path = r'D:\SkyJones\entropy_veg\lidar\las_products\USGS_LPC_TN_27County_blk2_2015_2276581SE_LAS_2017\USGS_LPC_TN_27County_blk2_2015_2276581SE_LAS_2017_dhm.tif'
+im_path = r'F:\entropy_veg\lidar\las_products\USGS_LPC_TN_27County_blk2_2015_2276581SE_LAS_2017\USGS_LPC_TN_27County_blk2_2015_2276581SE_LAS_2017_dhm.tif'
 image_gray = io.imread(im_path)
 image_gray[image_gray > 500] = 0
 image_gray[image_gray < 3] = 0
@@ -32,7 +32,7 @@ io.show()
 # blobs
 print('Computing laplace of gaussian')
 #blobs_log = blob_log(image_gray, max_sigma=35, min_sigma=3, num_sigma=10, threshold=2, overlap=.01)
-blobs_log = blob_log(image_gray, max_sigma=35, min_sigma=3, num_sigma=10, threshold=2, overlap=.01)
+blobs_log = blob_log(image_gray, max_sigma=35, min_sigma=6, num_sigma=10, threshold=2, overlap=.01)
 # Compute radii in the 3rd column.
 blobs_log[:, 2] = blobs_log[:, 2] * sqrt(2)
 print('Computed')
