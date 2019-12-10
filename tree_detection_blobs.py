@@ -1,4 +1,6 @@
 from math import sqrt
+import math
+from math import atan2, degrees
 
 from skimage import data
 from skimage.feature import blob_dog, blob_log, blob_doh
@@ -6,6 +8,7 @@ from skimage.color import rgb2gray
 from skimage import io
 import matplotlib.pyplot as plt
 from scipy import stats
+from scipy import spatial
 
 import numpy as np
 from scipy import ndimage as ndi
@@ -16,6 +19,8 @@ from skimage.feature import peak_local_max
 #image = data.hubble_deep_field()[0:500, 0:500]
 #image_gray = rgb2gray(image)
 
+neighbor_search_dist = 100
+
 im_path = r'F:\entropy_veg\lidar\las_products\USGS_LPC_TN_27County_blk2_2015_2276581SE_LAS_2017\USGS_LPC_TN_27County_blk2_2015_2276581SE_LAS_2017_dhm.tif'
 image_gray = io.imread(im_path)
 image_gray[image_gray > 500] = 0
@@ -24,6 +29,17 @@ image_gray[image_gray < 3] = 0
 image_gray = image_gray[2500:, 500:2000]
 #image_gray = image_gray[500:2000, 4500:6000]
 #image_gray = image_gray[3100:3500, 1100:1500]
+
+
+def distance(p0, p1):
+    return math.sqrt((p0[0] - p1[0])**2 + (p0[1] - p1[1])**2)
+
+
+def angle(p1, p2):
+    xDiff = p2[0] - p1[0]
+    yDiff = p2[1] - p1[1]
+    #return degrees(atan2(yDiff, xDiff))
+    return atan2(yDiff, xDiff)
 
 io.imshow(image_gray)
 io.show()
@@ -90,30 +106,37 @@ for blob in blobs_log:
 
 plt.show()
 
+pt_coords = blobs_log[:,0:2]
+tree = spatial.cKDTree(pt_coords,
+                       leafsize=16,
+                       compact_nodes=True,
+                       copy_data=False,
+                       balanced_tree=True)
+
+print('Finding neighbors')
+neighbor_list = [tree.query_ball_point([x,y], neighbor_search_dist) for y,x in pt_coords]
+for i,l in enumerate(neighbor_list):
+    if i in l:
+        l.remove(i)
+
+distances_list = []
+angles_list = []
+print('Computing angles and distances')
+for (y,x),group in zip(pt_coords,neighbor_list):
+    distance_group = []
+    angles_group = []
+    for neighbor in group:
+        nx = pt_coords[neighbor][1]
+        ny = pt_coords[neighbor][0]
+        d = distance([x,y],[nx,ny])
+        a = angle([x,y],[nx,ny])
+        distance_group.append(d)
+        angles_group.append(a)
+    distances_list.append(distance_group)
+    angles_list.append(angles_group)
+
+pt_data = {i:{'neighbors':neis, 'distances':dists, 'angles':angs}
+           for i,(neis,dists,angs) in
+           enumerate(zip(neighbor_list,distances_list,angles_list))}
+
 print('Done')
-
-"""
-# watershedding
-image = image_gray
-distance = ndi.distance_transform_edt(image)
-local_maxi = peak_local_max(distance, indices=False, footprint=np.ones((3, 3)),
-                            labels=image)
-markers = ndi.label(local_maxi)[0]
-labels = watershed(-distance, markers, mask=image)
-
-fig, axes = plt.subplots(ncols=3, figsize=(9, 3), sharex=True, sharey=True)
-ax = axes.ravel()
-
-ax[0].imshow(image, cmap=plt.cm.gray)
-ax[0].set_title('Overlapping objects')
-ax[1].imshow(-distance, cmap=plt.cm.gray)
-ax[1].set_title('Distances')
-ax[2].imshow(labels, cmap=plt.cm.nipy_spectral)
-ax[2].set_title('Separated objects')
-
-for a in ax:
-    a.set_axis_off()
-
-fig.tight_layout()
-plt.show()
-"""
