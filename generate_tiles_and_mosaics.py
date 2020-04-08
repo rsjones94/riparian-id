@@ -38,7 +38,7 @@ st = time.time()
 for i,sub in enumerate(folders):
     print(f'\n\n!!!!!!!!!!!!!!!\n Working on {sub}, {i+1} of {total_n} \n!!!!!!!!!!!!!!!\n\n')
 
-    if sub != 'custom2':
+    if sub not in ['080902030201','100301011309','102901110304']:
         continue
 
     working = os.path.join(par,sub)
