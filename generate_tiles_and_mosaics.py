@@ -23,8 +23,8 @@ refs = { # EPSG codes
         }
 """
 
-ovr_tiles = True
-ovr_copy = True
+ovr_tiles = False
+ovr_copy = False
 
 par = r'F:\gen_model'
 sas = pd.read_excel(os.path.join(par, r'study_areas.xlsx'), dtype={'HUC12': object})
@@ -38,7 +38,7 @@ st = time.time()
 for i,sub in enumerate(folders):
     print(f'\n\n!!!!!!!!!!!!!!!\n Working on {sub}, {i+1} of {total_n} \n!!!!!!!!!!!!!!!\n\n')
 
-    if sub not in ['080902030201','100301011309','102901110304']:
+    if sub not in ['080902030201']:
         continue
 
     working = os.path.join(par,sub)
@@ -51,6 +51,8 @@ for i,sub in enumerate(folders):
     data = os.path.join(lidar_folder,year_folder,'las')
     rasteration_target = os.path.join(working,'study_LiDAR','products','tiled')
 
+    if i == 2:
+        break
     rasteration(data, rasteration_target, resolution=1, overwrite=ovr_tiles)
     copy_target = os.path.join(working,'study_LiDAR','products','mosaic')
     cut_target = os.path.join(working,'study_LiDAR','products','clipped')

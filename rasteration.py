@@ -80,9 +80,13 @@ def rasteration(data_folder, products_folder, resolution=1, remove_buildings=Tru
                 with laspy.file.File(filename, mode="rw") as in_file:
                     in_file.user_data = copy(in_file.return_num)
             except TypeError:
-                print(f'A problem occurred while attempting to modify {file}. Skipping')
+                print(f'A TypeError occurred while attempting to modify {file}. Skipping')
                 problems.append(file)
-                continue
+                pass
+            except ValueError:
+                print(f'A ValueError occurred while attempting to modify {file}. Skipping')
+                problems.append(file)
+                pass
             wbt.lidar_tin_gridding(i=filename, output=nreturnsname, parameter='user data',
                                    returns='last', resolution=resolution, exclude_cls='7,18')  # , exclude_cls='7,13,14,18'
 
