@@ -26,14 +26,67 @@ n_rand = None  # number of samples from each table. None for all samples
 
 
 model_a = {
-    'model_name': 'fullset_depth8_splitPT0025_bin',
+    'model_name': 'genmodel_tern2',
 
-    'training_perc': 0.7,  # percent of data to train on
-    'min_split': 0.025, # minimum percentage of samples that a leaf must have to exist
+    'training_perc': 0.875,  # percent of data to train on
+    'min_split': 0.01, # minimum percentage of samples that a leaf must have to exist
     'drop_cols': [],
     # cols not to use as feature classes. note that dem and dsm are already not included (and others depending on how DB was assembled)
     'class_col': 'classification',  # column that contains classification data
-    'training_hucs': None, # what HUCS to train on. If None, use all available. Otherwise input is list of strings
+    'training_hucs': ['180500020905',
+                      '070801050901',
+                      '130202090102',
+                      '080102040304',
+                      '010500021301',
+                      '030902040303',
+                      '140801040103'
+                      ],  # what HUCS to train on. If None, use all available. Otherwise input is list of strings
+
+    'reclassing': {
+        'trees': ['fo', 'li', 'in'],
+        'rough': ['ue', 'we', 'rv']
+    },  # classes to cram together. If None, take classes as they are
+
+    'ignore': ['wa', 'cr'],  # classes to exclude from the analysis entirely
+
+    'class_weighting': 'balanced',
+    # None for proportional, 'balanced' to make inversely proportional to class frequency
+    'criterion': 'gini',  # entropy or gini
+    'max_depth': 6,  # max levels to decision tree
+    'notes':
+        """
+        This model uses all data from select HUCs to train a ternary classification scheme.
+        Meant to be applied to naive watersheds.
+        """
+}
+
+"""
+    'training_hucs': ['180500020905',
+                      '070801050901',
+                      '130202090102',
+                      '080102040304',
+                      '010500021301',
+                      '030902040303',
+                      '140801040103'
+                      ],  # what HUCS to train on. If None, use all available. Otherwise input is list of strings
+"""
+
+model_b = {
+    'model_name': 'genmodel_bin2',
+
+    'training_perc': 0.875,  # percent of data to train on
+    'min_split': 0.01, # minimum percentage of samples that a leaf must have to exist
+    'drop_cols': [],
+    # cols not to use as feature classes. note that dem and dsm are already not included (and others depending on how DB was assembled)
+    'class_col': 'classification',  # column that contains classification data
+    'training_hucs':  ['180500020905',
+                      '070801050901',
+                      '130202090102',
+                      '080102040304',
+                      '010500021301',
+                      '030902040303',
+                      '140801040103'
+                      ],  # what HUCS to train on. If None, use all available. Otherwise input is list of strings
 
     'reclassing': {
         'trees': ['fo', 'li', 'in']
@@ -44,43 +97,15 @@ model_a = {
     'class_weighting': 'balanced',
     # None for proportional, 'balanced' to make inversely proportional to class frequency
     'criterion': 'gini',  # entropy or gini
-    'max_depth': 8,  # max levels to decision tree
+    'max_depth': 6,  # max levels to decision tree
     'notes':
         """
-        This model uses all data to train a binary classification scheme. No Haralick textures
+        This model uses all data from select HUCs to train a ternary classification scheme.
+        Meant to be applied to naive watersheds.
         """
 }
 
-
-model_b = {
-    'model_name': 'fullset_depth8_splitPT0025_tern',
-
-    'training_perc': 0.7,  # percent of data to train on
-    'min_split': 0.025, # minimum percentage of samples that a leaf must have to exist
-    'drop_cols': [],
-    # cols not to use as feature classes. note that dem and dsm are already not included (and others depending on how DB was assembled)
-    'class_col': 'classification',  # column that contains classification data
-    'training_hucs': None, # what HUCS to train on. If None, use all available. Otherwise input is list of strings
-
-    'reclassing': {
-        'trees': ['fo', 'li', 'in'],
-        'herb_veg': ['rv', 'we']
-    },  # classes to cram together. If None, take classes as they are
-
-    'ignore': ['wa', 'cr'],  # classes to exclude from the analysis entirely
-
-    'class_weighting': 'balanced',
-    # None for proportional, 'balanced' to make inversely proportional to class frequency
-    'criterion': 'gini',  # entropy or gini
-    'max_depth': 8,  # max levels to decision tree
-    'notes':
-        """
-        This model uses all data to train a ternary classification scheme. No Haralick textures
-        """
-}
-
-
-model_param_list = [model_a, model_b]
+model_param_list = [model_b]
 
 ####
 
@@ -269,6 +294,10 @@ for mod in model_param_list:
     pickle_param_name = os.path.join(model_folder, 'param_package.joblib')
     param_package = mod
     dump(param_package, pickle_param_name)
+
+    pickle_importances_name = os.path.join(model_folder, 'importances_package.joblib')
+    importances_package = {feat: imp for feat, imp in zip(feature_cols, importances)}
+    dump(importances_package, pickle_importances_name)
 
     decision_tree_pic = os.path.join(model_folder, 'decision_tree.pdf')
     graph.write_pdf(decision_tree_pic)

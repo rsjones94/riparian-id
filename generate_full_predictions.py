@@ -12,7 +12,7 @@ import gdal
 from rasteration import calc_stats_and_ref
 
 
-def predict_cover(huc_folder, out_folder, feature_cols, clf, epsg):
+def predict_cover(huc_folder, out_folder, feature_cols, clf, importances, epsg):
     """
     Generates a raster of landcover using a decision tree
 
@@ -21,6 +21,7 @@ def predict_cover(huc_folder, out_folder, feature_cols, clf, epsg):
         out_folder: folder that the data will be written to
         feature_cols: the parameters that the model uses
         clf: sklearn decision tree
+        importances: dictionary relating a column to its numeric importance of
         epsg: projection of the output data
 
     Returns:
@@ -67,16 +68,22 @@ def predict_cover(huc_folder, out_folder, feature_cols, clf, epsg):
         band += 1
         band_name = band_dict[band][:-4]
 
-        print(f'Flattening {band_name}')
-        input_band = img.GetRasterBand(band)
-        band_nodatas[band_name] = input_band.GetNoDataValue()
-        input_array = np.array(input_band.ReadAsArray())
-        flat_array = input_array.flatten()
+        if importances[band_name] != 0:
+            print(f'Flattening {band_name}')
+            input_band = img.GetRasterBand(band)
+            band_nodatas[band_name] = input_band.GetNoDataValue()
+            input_array = np.array(input_band.ReadAsArray())
+            flat_array = input_array.flatten()
 
-        smask = flat_array != band_nodatas[band_name]
-        submasks.append(smask)
+            smask = flat_array != band_nodatas[band_name]
+            submasks.append(smask)
 
-        flat_array[flat_array == band_nodatas[band_name]] = np.mean(flat_array) # fill nodata with mean, but could use different val
+            flat_array[flat_array == band_nodatas[band_name]] = np.mean(flat_array) # fill nodata with mean, but could use different val
+        else:
+            print(f'{band_name} unimportant')
+            blank_length = nx*ny
+            flat_array = np.zeros[blank_length]
+
         band_vals[band_name] = flat_array
 
     print('Generating mask')
@@ -85,9 +92,13 @@ def predict_cover(huc_folder, out_folder, feature_cols, clf, epsg):
     print('Generating dataframe')
     data = pd.DataFrame(band_vals)
 
+    del band_vals
+    del submasks
+
     print('Making predictions')
     y = decision_tree.predict(data)
     masked = y*mask
+    del y
     resh = np.reshape(masked, (ny,nx))
 
     print('Writing predictions')

@@ -8,8 +8,11 @@ from joblib import dump, load
 from generate_full_predictions import predict_cover
 
 #hucs = ['010500021301', '030902040303', '070801050901', '080102040304', '130202090102', '140801040103', '180500020905']
-hucs = ['custom2']
-models = ['tn_simpletraining_depth6_splitPT0025_bin', 'tn_simpletraining_depth6_splitPT0025']
+#hucs = ['custom2']
+hucs = ['100301011309',
+        '102901110304',
+        ]
+models = ['genmodel_tern', 'genmodel_bin']
 
 ###
 par = r'F:\gen_model'
@@ -23,4 +26,5 @@ for huc in hucs:
         fol = os.path.join(par, 'study_areas', huc)
         model_folder = os.path.join(par, 'models', model)
         clf, feature_cols = load(os.path.join(model_folder, 'clf_package.joblib'))
-        img = predict_cover(fol, os.path.join(model_folder,huc), feature_cols, clf, sas.loc[huc].EPSG)
+        imp = load(os.path.join(model_folder, 'importances_package.joblib'))
+        img = predict_cover(fol, os.path.join(model_folder,huc), feature_cols, clf, imp, sas.loc[huc].EPSG)
