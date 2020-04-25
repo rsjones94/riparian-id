@@ -78,7 +78,7 @@ print(f'Data read. Elapsed time: {round(read_elap / 60, 2)} minutes')
 ## master watershed plot
 print(f'Reforming data')
 training_df_list = [df for shed, df in read_tables.items()]
-master_df = pd.concat(training_df_list, ignore_index=True)
+master_df = pd.concat(training_df_list, ignore_index=True, sort=False)
 read_tables['master'] = master_df
 
 """
@@ -87,6 +87,17 @@ for key, df in read_tables.items():
     print(f'Scrubbing outliers: {key}')
     read_tables[key] = df.mask((df - df.mean()).abs() > 2 * df.std())
 """
+
+xlims = {'demro': (0,100),
+           'dhmco': (-10,10),
+           'dhmcp': (0,0.2),
+           'dhmcs': (-10000,10000),
+           'dhmhc': (0,2*10e5),
+           'dhmin': (0,200),
+           'dhmro': (0,25),
+           'dighe': (-10,30),
+           'dsmro': (0, 50)
+           }
 
 watershed_master = os.path.join(output_folder, 'constant_watershed')
 if os.path.exists(watershed_master):
@@ -119,6 +130,9 @@ for shed, df in read_tables.items():
                             alpha=0.5,
                             color=inv_plot_dict_color[n],
                             ls=inv_plot_dict_linestyle[n])
+            plt.legend(fontsize='x-small')
+            if col in xlims:
+                plt.xlim(xlims[col][0], xlims[col][1])
             out_loc = os.path.join(shed_folder,f'signal_{col}.png')
             fig.savefig(out_loc)
             plt.close(fig)
@@ -150,6 +164,9 @@ for n, key in inv_code_dict.items():
                 data = df[col].loc[rows_of_class]
                 class_name = inv_code_dict[n]
                 sns.kdeplot(np.array(data), label=shed, alpha=0.5)
+            plt.legend(fontsize='x-small')
+            if col in xlims:
+                plt.xlim(xlims[col][0], xlims[col][1])
             out_loc = os.path.join(class_folder, f'signal_{col}.png')
             fig.savefig(out_loc)
             plt.close(fig)
