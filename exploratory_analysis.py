@@ -88,15 +88,15 @@ for key, df in read_tables.items():
     read_tables[key] = df.mask((df - df.mean()).abs() > 2 * df.std())
 """
 
-xlims = {'demro': (0,100),
-           'dhmco': (-10,10),
-           'dhmcp': (0,0.2),
-           'dhmcs': (-10000,10000),
-           'dhmhc': (0,2*10e5),
-           'dhmin': (0,200),
-           'dhmro': (0,25),
-           'dighe': (-10,30),
-           'dsmro': (0, 50)
+xlims = {'demro': (-2,23),
+           'dhmco': (-2.5,2.5),
+           'dhmcp': (-1,1),
+           'dhmcs': (-1250,1250),
+           'dhmhc': (-1e4,2.5e5),
+           'dhmin': (-10,50),
+           'dhmro': (-5,5),
+           'dighe': (-1,3),
+           'dsmro': (-1, 20)
            }
 
 watershed_master = os.path.join(output_folder, 'constant_watershed')
