@@ -7,6 +7,7 @@ from copy import copy
 import shutil
 import glob
 
+import ogr
 import gdal
 import whitebox
 import laspy
@@ -441,6 +442,8 @@ def big_derivs(folder):
 
     dhmenergyname = os.path.join(folder, 'dhmeg.tif')
 
+    dstncname = os.path.join(folder, 'dstnc.tif')
+
     #nreteturnspercentovermeanname = os.path.join(folder, 'nrepo.tif') # number of returns, percent over mean
 
     # cubic convolution resampling
@@ -509,48 +512,85 @@ def big_derivs(folder):
         print(f'{nreturnsroughnessname} exists. Skipping generation....')
 
     if not os.path.exists(dhmenergyname):
-        generate_haralicks(dhmname, folder, 'dhm', 0, 32, 64) # generate textures using dhm, max height of 32 and bins of 0.5
+        generate_haralicks(dhmname, folder, 'dhm', 0, 16, 32) # generate textures using dhm, max height of 16m and bins of 0.5
     else:
         print(f'{dhmenergyname} exists. Skipping generation....')
 
-    """
-    if not os.path.exists(nreteturnspercentovermeanname):
-        pass
-    else:
-        print(f'{nreteturnspercentovermeanname} exists. Skipping generation....')
-    """
 
+def createBuffer(inputfn, outputBufferfn, bufferDist):
     """
+    http://pcjericks.github.io/py-gdalogr-cookbook/vector_layers.html?highlight=buffer
 
-    if not os.path.exists(dhmresamplename): ###
-        command = f'gdalwarp  -r cubic {dhmname} {dhmresamplename}'
-        print(f'Run dhm resampling command: {command}')
-        os.system(command)
-    else:
-        print(f'{dhmresamplename} exists. Skipping generation....')
+    Args:
+        inputfn:
+        outputBufferfn:
+        bufferDist:
 
-    if not os.path.exists(nreturnsresamplename): ###
-        command = f'gdalwarp  -r cubic {nreturnsname} {nreturnsresamplename}'
-        print(f'Run return resampling command: {command}')
-        os.system(command)
-    else:
-        print(f'{nreturnsresamplename} exists. Skipping generation....')
-    """
-
+    Returns:
 
     """
-    # make a DEM roughness file, kernel width = 11
-    demroughname = outname + '_demro.tif'
-    if not os.path.exists(demroughname):
-        wbt.average_normal_vector_angular_deviation(dem=demname, output=demroughname, filter=11)
+    inputds = ogr.Open(inputfn)
+    inputlyr = inputds.GetLayer()
 
-    # make a DSM roughness file, kernel width = 11
-    dsmroughname = outname + '_dsmro.tif'
-    if not os.path.exists(dsmroughname):
-        wbt.average_normal_vector_angular_deviation(dem=dsmname, output=dsmroughname, filter=11)
+    shpdriver = ogr.GetDriverByName('ESRI Shapefile')
+    if os.path.exists(outputBufferfn):
+        shpdriver.DeleteDataSource(outputBufferfn)
+    outputBufferds = shpdriver.CreateDataSource(outputBufferfn)
+    bufferlyr = outputBufferds.CreateLayer(outputBufferfn, geom_type=ogr.wkbPolygon)
+    featureDefn = bufferlyr.GetLayerDefn()
 
-    # make a DHM roughness file, kernel width = 11
-    dhmroughname = outname + '_dhmro.tif'
-    if not os.path.exists(dhmroughname):
-        wbt.average_normal_vector_angular_deviation(dem=dhmname, output=dhmroughname, filter=11)
+    for feature in inputlyr:
+        ingeom = feature.GetGeometryRef()
+        geomBuffer = ingeom.Buffer(bufferDist)
+
+        outFeature = ogr.Feature(featureDefn)
+        outFeature.SetGeometry(geomBuffer)
+        bufferlyr.CreateFeature(outFeature)
+        outFeature = None
+
+def generate_distance_raster(polylines, support_folder, outname, epsg=None, cut_shape=None):
     """
+    Generates a raster giving the distance from each cell to the nearest feature in a shapefile
+
+    Args:
+        polylines: features to calculate distance to
+        support_folder: output FOLDER
+        epsg: the epsg to reproject the input polyline file to
+        cut_shape: an optional raster used to cut down the output file
+
+    Returns:
+        None
+
+    """
+    if os.path.exists(support_folder):
+        print(f'Removing {support_folder}')
+        shutil.rmtree(support_folder)
+    print(f'Creating {support_folder}')
+    os.mkdir(support_folder)
+
+    #buff_name = os.path.join(support_folder, 'buffered_polylines.shp')
+    #createBuffer(polylines, buff_name, 1)
+
+    if epsg:
+        repro_name = os.path.join(support_folder, 'polylines_repro.shp')
+        repro_command = f'ogr2ogr -t_srs EPSG:{epsg} {repro_name} {polylines}'
+        print(f'Run command: {repro_command}')
+        os.system(repro_command)
+        polylines = repro_name
+
+    if cut_shape:
+        cut_name = os.path.join(support_folder, 'polylines_cut.shp')
+        cut_command = f'ogr2ogr -clipsrc {cut_shape} {cut_name} {polylines}'
+        print(f'Run command: {cut_command}')
+        os.system(cut_command)
+        polylines = cut_name
+
+    rasterized_name = os.path.join(support_folder, 'rasterized_polylines.tif')
+    rasterize_command = f'gdal_rasterize -burn 1 -tr 1 1 -ot Int16 {polylines} {rasterized_name}'
+    print(f'Run command: {rasterize_command}')
+    os.system(rasterize_command)
+
+    distance_name = outname
+    distance_command = f'gdal_proximity.py {rasterized_name} {distance_name}'
+    print(f'Run command: {distance_command}')
+    os.system(distance_command)
