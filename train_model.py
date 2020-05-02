@@ -26,11 +26,11 @@ n_rand = None  # number of samples from each table. None for all samples
 
 
 model_a = {
-    'model_name': 'genmodel_tern2',
+    'model_name': 'genmodel_tern',
 
     'training_perc': 0.875,  # percent of data to train on
     'min_split': 0.01, # minimum percentage of samples that a leaf must have to exist
-    'drop_cols': [],
+    'drop_cols': ['dstnc'],
     # cols not to use as feature classes. note that dem and dsm are already not included (and others depending on how DB was assembled)
     'class_col': 'classification',  # column that contains classification data
     'training_hucs': ['180500020905',
@@ -48,6 +48,8 @@ model_a = {
     },  # classes to cram together. If None, take classes as they are
 
     'ignore': ['wa', 'cr'],  # classes to exclude from the analysis entirely
+
+    'riparian_distance': 30, # distance from a stream to be considered riparian
 
     'class_weighting': 'balanced',
     # None for proportional, 'balanced' to make inversely proportional to class frequency
@@ -72,11 +74,11 @@ model_a = {
 """
 
 model_b = {
-    'model_name': 'genmodel_bin2',
+    'model_name': 'genmodel_bin',
 
     'training_perc': 0.875,  # percent of data to train on
     'min_split': 0.01, # minimum percentage of samples that a leaf must have to exist
-    'drop_cols': [],
+    'drop_cols': ['dstnc'],
     # cols not to use as feature classes. note that dem and dsm are already not included (and others depending on how DB was assembled)
     'class_col': 'classification',  # column that contains classification data
     'training_hucs':  ['180500020905',
@@ -93,6 +95,8 @@ model_b = {
     },  # classes to cram together. If None, take classes as they are
 
     'ignore': ['wa', 'cr'],  # classes to exclude from the analysis entirely
+
+    'riparian_distance': 30, # distance from a stream to be considered riparian
 
     'class_weighting': 'balanced',
     # None for proportional, 'balanced' to make inversely proportional to class frequency
@@ -163,6 +167,7 @@ read_time = time.time()
 read_elap = read_time - start_time
 print(f'Data read. Elapsed time: {round(read_elap / 60, 2)} minutes')
 
+
 ###
 for mod in model_param_list:
 
@@ -175,6 +180,8 @@ for mod in model_param_list:
     else:
         training_hucs = mod['training_hucs']
 
+    naive_hucs = [table for table in read_tables if table not in training_hucs]
+
     training_perc = mod['training_perc']
     drop_cols = mod['drop_cols']
     drop_cols.extend(['cellno', 'classification', 'huc12', 'weight'])
@@ -185,6 +192,7 @@ for mod in model_param_list:
     criterion = mod['criterion']
     max_depth = mod['max_depth']
     min_split = mod['min_split']
+    riparian_distance = mod['riparian_distance']
 
     model_folder = os.path.join(models_folder, model_name)
     print('\n')
@@ -193,12 +201,18 @@ for mod in model_param_list:
     print(f'Reforming training data')
 
     training_df_list = [read_tables[huc] for huc in training_hucs]
+    naive_df_list = [read_tables[huc] for huc in naive_hucs]
+
     df = pd.concat(training_df_list, ignore_index=True)
+    naive_df = pd.concat(naive_df_list, ignore_index=True)
 
     print(f'Remapping')
 
     co = Counter(df[class_col])
     co = {int(v): val for v, val in co.items()}
+
+    naive_co = Counter(naive_df[class_col])
+    naive_co = {int(v): val for v, val in naive_co.items()}
 
     code_file = os.path.join(training_folder, 'class_codes.xlsx')
     codes = pd.read_excel(code_file)
@@ -206,6 +220,7 @@ for mod in model_param_list:
     inv_code_dict = {num: code for code, num in zip(codes['t_code'], codes['n_code'])}
 
     present_classes = [inv_code_dict[v] for v in list(co.keys())]
+    present_classes_naive = [inv_code_dict[v] for v in list(naive_co.keys())]
 
     if reclassing is None:
         reclassing = {cat: [code] for cat, code in zip(codes['category'], codes['t_code'])}
@@ -216,18 +231,25 @@ for mod in model_param_list:
     # we need to make sure that each key in reclassing maps to at least one code present in the classifier column
     any_in = lambda a, b: any(i in b for i in a)  # tests if any element of a is in b
     reclassing = {cat: code_list for cat, code_list in reclassing.items() if any_in(code_list, present_classes)}
+    naive_reclassing = {cat: code_list for cat, code_list in reclassing.items() if any_in(code_list, present_classes_naive)}
 
     class_names = list(reclassing.keys())
+    naive_class_names = list(naive_reclassing.keys())
 
     class_map = {i + 1: [code_dict[j] for j in l] for i, l in enumerate(reclassing.values())}
     inv_map = invert_dict(class_map)
 
+    naive_class_map = {i + 1: [code_dict[j] for j in l] for i, l in enumerate(naive_reclassing.values())}
+    naive_inv_map = invert_dict(naive_class_map)
+
     ignore_nums = [code_dict[val] for val in ignore]  # classes we will not use to train the model
     df = df[~df[class_col].isin(ignore_nums)]
+    naive_df = naive_df[~naive_df[class_col].isin(ignore_nums)]
 
     print('Training model')
     cols = list(df.columns)
     feature_cols = [i for i in cols if i not in drop_cols]
+
     why = []
     n_classes = len(class_names)  # number of SPECIFIED classes; there is another, 'other', if reclass is not none
     for y in df[class_col]:
@@ -236,26 +258,38 @@ for mod in model_param_list:
         except KeyError:
             why.append(n_classes + 1)
 
+    naive_why = []
+    naive_n_classes = len(naive_class_names)  # number of SPECIFIED classes; there is another, 'other', if reclass is not none
+    for y in naive_df[class_col]:
+        try:
+            naive_why.append(inv_map[y])
+        except KeyError:
+            naive_why.append(naive_n_classes + 1)
+
     x_train, x_test, y_train, y_test = train_test_split(df, why, test_size=1-training_perc, random_state=None)
+    x_train_naive, x_test_naive, y_train_naive, y_test_naive = train_test_split(naive_df, naive_why, test_size=0.99, random_state=None)
     # test size fraction used to test trained model against
 
     # Create Decision Tree classifier object
     clf = DecisionTreeClassifier(criterion=criterion,
                                  max_depth=max_depth,
                                  class_weight=class_weighting,
-                                 min_samples_leaf=0.05)
+                                 min_samples_leaf=min_split)
     # Train Decision Tree classifier
     model = clf.fit(x_train[feature_cols], y_train, sample_weight=np.array(x_train['weight']))
     prune_duplicate_leaves(model)
     importances = model.feature_importances_
-    # Predict the response for test dataset
+    # Predict the response for test dataset (and for the naive dataset)
     y_pred = model.predict(x_test[feature_cols])
+    y_pred_naive = model.preduct(x_test_naive[feature_cols])
 
-    print(f'Accuracy: {round(metrics.accuracy_score(y_test, y_pred) * 100, 2)}%')
+    print(f'Accuracy (trained): {round(metrics.accuracy_score(y_test, y_pred) * 100, 2)}%')
+    print(f'Accuracy (naive): {round(metrics.accuracy_score(y_test_naive, y_pred_naive) * 100, 2)}%')
     contributions = {feat: f'{round(imp * 100, 2)}%' for feat, imp in zip(feature_cols, importances)}
 
     if not perfect_mapping:
         class_names.append('other')
+        naive_class_names.append('other')
     dot_data = tree.export_graphviz(model, out_file=None,
                                     feature_names=feature_cols,
                                     class_names=class_names)
@@ -272,18 +306,29 @@ for mod in model_param_list:
     print(f'(general report)')
     create_predictions_report(y_test=y_test, y_pred=y_pred,
                               class_names=class_names,
-                              out_loc=os.path.join(rep_folder, f'full_report_{model_name}.xlsx'),
+                              out_loc=os.path.join(rep_folder, f'aggregate_report_{model_name}_TRAINED.xlsx'),
                               wts=np.array(x_test['weight']))
 
+    for shed in naive_hucs:
+        print(f'naive - ({shed} report)')
+        mask = x_test_naive['huc12'] == shed
+        sub_y_test = [c for c,m in zip(y_test_naive,mask) if m]
+        sub_y_pred = [p for p,m in zip(y_test_naive,mask) if m]
+        create_predictions_report(y_test=sub_y_test, y_pred=sub_y_pred,
+                                  class_names=class_names,
+                                  out_loc=os.path.join(rep_folder, f'{shed}_report_{model_name}_NAIVE.xlsx'),
+                                  wts=None)
+
     for shed in training_hucs:
-        print(f'({shed} report)')
+        print(f'trained - ({shed} report)')
         mask = x_test['huc12'] == shed
         sub_y_test = [c for c,m in zip(y_test,mask) if m]
         sub_y_pred = [p for p,m in zip(y_pred,mask) if m]
         create_predictions_report(y_test=sub_y_test, y_pred=sub_y_pred,
                                   class_names=class_names,
-                                  out_loc=os.path.join(rep_folder, f'{shed}_report_{model_name}.xlsx'),
+                                  out_loc=os.path.join(rep_folder, f'{shed}_report_{model_name}_TRAINED.xlsx'),
                                   wts=None)
+
 
     ###
 
@@ -314,6 +359,7 @@ for mod in model_param_list:
     Decision Tree Classifier, built with sklearn v{sklearn.__version__}, Python v{sys.version_info[0]}.{
         sys.version_info[1]}.{sys.version_info[2]}
         Trained on {', '.join(training_hucs)}
+        Naive watersheds: {', '.join(naive_hucs)}
         Weighting type is {class_weighting} and splitting criterion is {criterion}. Max tree depth: {max_depth}
         Training percent: {round(training_perc * 100, 2)}%
         Minimum split: {round(min_split * 100, 2)}%
@@ -322,6 +368,7 @@ for mod in model_param_list:
         Reclassing: {extended_reclass_map}
         Mapping: {name_mapping}
         Ignored classes: {ignore}
+        Riparian distance: {riparian_distance}
         """
         f.write(written)
 

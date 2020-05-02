@@ -8,8 +8,8 @@ from rasteration import *
 
 # consider removing excessive scan angles with wbt.filter_lidar_scan_angles()
 
-ovr_tiles = False
-ovr_copy = False
+ovr_tiles = True
+ovr_copy = True
 ovr_d2strm = True
 
 par = r'F:\gen_model'
@@ -40,7 +40,7 @@ for i,sub in enumerate(folders):
     data = os.path.join(lidar_folder,year_folder,'las')
     rasteration_target = os.path.join(working,'study_LiDAR','products','tiled')
 
-    rasteration(data, rasteration_target, resolution=1, overwrite=ovr_tiles)
+    rasteration(data, rasteration_target, resolution=1, remove_buildings=False, overwrite=ovr_tiles)
     copy_target = os.path.join(working,'study_LiDAR','products','mosaic')
     cut_target = os.path.join(working,'study_LiDAR','products','clipped')
     copy_tiles(rasteration_target, copy_target, overwrite=ovr_copy)

@@ -512,7 +512,7 @@ def big_derivs(folder):
         print(f'{nreturnsroughnessname} exists. Skipping generation....')
 
     if not os.path.exists(dhmenergyname):
-        generate_haralicks(dhmname, folder, 'dhm', 0, 16, 32) # generate textures using dhm, max height of 16m and bins of 0.5
+        generate_haralicks(dhmname, folder, 'dhm', 0, 12, 48) # generate textures using dhm, max height of 12m and bins of 0.25m. Was previously 32m and bins of 0.5m
     else:
         print(f'{dhmenergyname} exists. Skipping generation....')
 
