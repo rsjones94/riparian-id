@@ -331,6 +331,7 @@ for mod in model_param_list:
 
 
     ###
+    print('PACKAGING MODEL')
 
     pickle_clf_name = os.path.join(model_folder, 'clf_package.joblib')
     clf_package = (clf, feature_cols)

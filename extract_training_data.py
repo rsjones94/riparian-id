@@ -25,7 +25,7 @@ if_exists = 'replace'  # fail or replace (what to do if the table exists already
 
 parent = r'F:\gen_model\study_areas'
 # subs = ['080102040304', '010500021301'] # which HUCS to extract data from
-subs = ['180500020905']
+subs = None
 
 training_folder = r'F:\gen_model\training_sets'
 
@@ -182,11 +182,10 @@ for k, sub in enumerate(subs):
     print('Generating dataframe')
     out_data = pd.DataFrame(band_vals)
     out_data['huc12'] = sub
-    raise Exception
-    out_data['dstnc'].replace({band_nodatas['dstnc']: -1}, inplace=True)
-    # the once column we will actually keep nodata values from is distance to stream
+    out_data['dstnc'].replace({0: -1}, inplace=True) # the value is 0 when it's right on a stream, but also when the dstnc raster's extent is exceeded by the VRT's. Small loss of data but acceptable
+    # the one column we will actually keep nodata values from is distance to stream
     # we're doing this because the stream network is truncated but we still want to preserve data outside it
-    # however we can't store nodata so we'll use -1 as a placeholer
+    # however we can't store nodata so we'll use -1 as a placeholder
     print('Paring dataframe')
     orig_rows = len(out_data)
     query = ''
