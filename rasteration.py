@@ -548,7 +548,8 @@ def createBuffer(inputfn, outputBufferfn, bufferDist):
         bufferlyr.CreateFeature(outFeature)
         outFeature = None
 
-def generate_distance_raster(polylines, support_folder, outname, epsg=None, cut_shape=None):
+
+def generate_distance_raster(polylines, support_folder, outname, epsg=None, cut_shape=None, cut_buffer=1000):
     """
     Generates a raster giving the distance from each cell to the nearest feature in a shapefile
 
@@ -579,14 +580,18 @@ def generate_distance_raster(polylines, support_folder, outname, epsg=None, cut_
         polylines = repro_name
 
     if cut_shape:
+        buffered_cutter_name = os.path.join(support_folder, 'buffered_cutter.shp')
+        print('Creating buffered cutting shape')
+        createBuffer(cut_shape, buffered_cutter_name, cut_buffer)
+
         cut_name = os.path.join(support_folder, 'polylines_cut.shp')
-        cut_command = f'ogr2ogr -clipsrc {cut_shape} {cut_name} {polylines}'
+        cut_command = f'ogr2ogr -clipsrc {buffered_cutter_name} {cut_name} {polylines}'
         print(f'Run command: {cut_command}')
         os.system(cut_command)
         polylines = cut_name
 
     rasterized_name = os.path.join(support_folder, 'rasterized_polylines.tif')
-    rasterize_command = f'gdal_rasterize -burn 1 -tr 1 1 -ot Int16 {polylines} {rasterized_name}'
+    rasterize_command = f'gdal_rasterize -burn 1 -tr 1 1 -ot Byte {polylines} {rasterized_name}'
     print(f'Run command: {rasterize_command}')
     os.system(rasterize_command)
 

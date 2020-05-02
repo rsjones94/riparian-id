@@ -8,8 +8,8 @@ from rasteration import *
 
 # consider removing excessive scan angles with wbt.filter_lidar_scan_angles()
 
-ovr_tiles = True
-ovr_copy = True
+ovr_tiles = False
+ovr_copy = False
 ovr_d2strm = True
 
 par = r'F:\gen_model'
@@ -58,9 +58,11 @@ for i,sub in enumerate(folders):
             target_folder = os.path.join(working, 'study_area', 'flowlines', 'distance_to_stream')
 
             target_name = os.path.join(copy_target, 'dstnc.tif')
+            if os.path.exists(target_name):
+                os.remove(target_name)
             generate_distance_raster(polyline_file, target_folder,
                                      target_name, epsg=sas.loc[sub].EPSG,
-                                     cut_shape=cut_shape_file)
+                                     cut_shape=cut_shape_file, cut_buffer=2500)
 
             success.append(sub)
         except:

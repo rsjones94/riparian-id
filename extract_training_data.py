@@ -25,7 +25,7 @@ if_exists = 'replace'  # fail or replace (what to do if the table exists already
 
 parent = r'F:\gen_model\study_areas'
 # subs = ['080102040304', '010500021301'] # which HUCS to extract data from
-subs = None
+subs = ['180500020905']
 
 training_folder = r'F:\gen_model\training_sets'
 
@@ -182,6 +182,7 @@ for k, sub in enumerate(subs):
     print('Generating dataframe')
     out_data = pd.DataFrame(band_vals)
     out_data['huc12'] = sub
+    raise Exception
     out_data['dstnc'].replace({band_nodatas['dstnc']: -1}, inplace=True)
     # the once column we will actually keep nodata values from is distance to stream
     # we're doing this because the stream network is truncated but we still want to preserve data outside it
@@ -190,7 +191,8 @@ for k, sub in enumerate(subs):
     orig_rows = len(out_data)
     query = ''
     for key, val in band_nodatas.items():
-        query += f'{key} != {val} and '
+        if key != 'dstnc':
+            query += f'{key} != {val} and '
     query = query[:-5]
     print(f'Query: {query}')
     out_data.query(query, inplace=True)
