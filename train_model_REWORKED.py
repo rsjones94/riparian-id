@@ -25,7 +25,7 @@ models_folder = r'F:\gen_model\models'
 n_rand = None  # number of samples from each table. None for all samples
 
 model_a = {
-    'model_name': 'genmodel_tern_TESTEROONI',
+    'model_name': 'genmodel_tern',
 
     'training_perc': 0.875,  # percent of data to train on
     'min_split': 0.01,  # minimum percentage of samples that a leaf must have to exist
@@ -44,6 +44,42 @@ model_a = {
     'reclassing': {
         'trees': ['fo', 'li', 'in'],
         'rough': ['ue', 'we', 'rv']
+    },  # classes to cram together. If None, take classes as they are
+
+    'ignore': ['wa', 'cr'],  # classes to exclude from the analysis entirely
+
+    'riparian_distance': 30,  # distance from a stream to be considered riparian
+
+    'class_weighting': 'balanced',
+    # None for proportional, 'balanced' to make inversely proportional to class frequency
+    'criterion': 'gini',  # entropy or gini
+    'max_depth': 6,  # max levels to decision tree
+    'notes':
+        """
+        This model uses all data from select HUCs to train a ternary classification scheme.
+        Meant to be applied to naive watersheds.
+        """
+}
+
+model_a = {
+    'model_name': 'genmodel_bin',
+
+    'training_perc': 0.875,  # percent of data to train on
+    'min_split': 0.01,  # minimum percentage of samples that a leaf must have to exist
+    'drop_cols': [],
+    # cols not to use as feature classes. note that dem and dsm are already not included (and others depending on how DB was assembled)
+    'class_col': 'classification',  # column that contains classification data
+    'training_hucs': ['180500020905',
+                      '070801050901',
+                      '130202090102',
+                      '080102040304',
+                      '010500021301',
+                      '030902040303',
+                      '140801040103'
+                      ],  # what HUCS to train on. If None, use all available. Otherwise input is list of strings
+
+    'reclassing': {
+        'trees': ['fo', 'li', 'in']
     },  # classes to cram together. If None, take classes as they are
 
     'ignore': ['wa', 'cr'],  # classes to exclude from the analysis entirely
@@ -108,6 +144,7 @@ present_tables = [f[0] for f in cursor.fetchall()]
 cursor.close()
 
 read_tables = {}
+
 for tab in present_tables:
     print(f'Reading {tab}')
     if n_rand:
@@ -203,13 +240,13 @@ for mod in model_param_list:
     df['why'] = why
 
     # training data. use the training hucs
-    x_train, x_test, y_train, y_test = train_test_split(df.loc[df['huc12'].isin(training_hucs)][feature_cols],
+    x_train, x_test, y_train, y_test = train_test_split(df.loc[df['huc12'].isin(training_hucs)],
                                                         df.loc[df['huc12'].isin(training_hucs)]['why'],
                                                         test_size=1 - training_perc,
                                                         random_state=None)
 
     # naive data. use the naive hucs. note that we actually don't need any training data for the naive set, just testing data
-    x_train_naive, x_test_naive, y_train_naive, y_test_naive = train_test_split(df.loc[df['huc12'].isin(naive_hucs)][feature_cols],
+    x_train_naive, x_test_naive, y_train_naive, y_test_naive = train_test_split(df.loc[df['huc12'].isin(naive_hucs)],
                                                                                 df.loc[df['huc12'].isin(naive_hucs)]['why'],
                                                                                 test_size=0.999,
                                                                                 random_state=None)
@@ -219,7 +256,7 @@ for mod in model_param_list:
                                  max_depth=max_depth,
                                  class_weight=class_weighting,
                                  min_samples_leaf=min_split)
-    model = clf.fit(x_train, y_train, sample_weight=np.array(x_train['weight'])) # the weighting here ensures that as a whole, each HUC is given the same weight
+    model = clf.fit(x_train[feature_cols], y_train, sample_weight=np.array(x_train['weight'])) # the weighting here ensures that as a whole, each HUC is given the same weight
     # even if the number of samples is different. This is NOT the weighting of each aggregate class
     #model = clf.fit(x_train[feature_cols], y_train)
     prune_duplicate_leaves(model)
@@ -255,7 +292,7 @@ for mod in model_param_list:
 
     dist_mask_upper = df.loc[df['huc12'].isin(training_hucs)]['dstnc'] > 0
     dist_mask_lower = df.loc[df['huc12'].isin(training_hucs)]['dstnc'] <= riparian_distance
-    dist_mask = (a and b for a, b in zip(dist_mask_upper, dist_mask_lower))
+    dist_mask = [a and b for a, b in zip(dist_mask_upper, dist_mask_lower)]
 
     sub_y_test_riparian = [c for c, d in zip(y_test, dist_mask) if d]
     sub_y_pred_riparian = [p for p, d in zip(y_pred, dist_mask) if d]
@@ -273,7 +310,7 @@ for mod in model_param_list:
 
     dist_mask_upper = df.loc[df['huc12'].isin(naive_hucs)]['dstnc'] > 0
     dist_mask_lower = df.loc[df['huc12'].isin(naive_hucs)]['dstnc'] <= riparian_distance
-    dist_mask = (a and b for a, b in zip(dist_mask_upper, dist_mask_lower))
+    dist_mask = [a and b for a, b in zip(dist_mask_upper, dist_mask_lower)]
 
     sub_y_test_riparian = [c for c, d in zip(y_test_naive, dist_mask) if d]
     sub_y_pred_riparian = [p for p, d in zip(y_pred_naive, dist_mask) if d]
@@ -299,7 +336,7 @@ for mod in model_param_list:
         huc_mask = ex['huc12'] == shed
         dist_mask_upper = ex['dstnc'] > 0
         dist_mask_lower = ex['dstnc'] <= riparian_distance
-        dist_mask = (a and b for a,b in zip(dist_mask_upper, dist_mask_lower))
+        dist_mask = [a and b for a,b in zip(dist_mask_upper, dist_mask_lower)]
 
         sub_y_test = [c for c,m in zip(wi_test, huc_mask) if m]
         sub_y_pred = [p for p,m in zip(wi_pred, huc_mask) if m]
