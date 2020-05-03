@@ -200,16 +200,18 @@ for mod in model_param_list:
         except KeyError:
             why.append(n_classes + 1)
 
+    df['why'] = why
+
     # training data. use the training hucs
-    x_train, x_test, y_train, y_test = train_test_split(df.loc[df['huc12'].isin(training_hucs)],
-                                                        why,
+    x_train, x_test, y_train, y_test = train_test_split(df.loc[df['huc12'].isin(training_hucs)][feature_cols],
+                                                        df.loc[df['huc12'].isin(training_hucs)]['why'],
                                                         test_size=1 - training_perc,
                                                         random_state=None)
 
     # naive data. use the naive hucs. note that we actually don't need any training data for the naive set, just testing data
-    x_train_naive, x_test_naive, y_train_naive, y_test_naive = train_test_split(df.loc[df['huc12'].isin(naive_hucs)],
-                                                                                why,
-                                                                                test_size=1,
+    x_train_naive, x_test_naive, y_train_naive, y_test_naive = train_test_split(df.loc[df['huc12'].isin(naive_hucs)][feature_cols],
+                                                                                df.loc[df['huc12'].isin(naive_hucs)]['why'],
+                                                                                test_size=0.999,
                                                                                 random_state=None)
 
     # Train Decision Tree classifier
@@ -217,7 +219,7 @@ for mod in model_param_list:
                                  max_depth=max_depth,
                                  class_weight=class_weighting,
                                  min_samples_leaf=min_split)
-    model = clf.fit(x_train[feature_cols], y_train, sample_weight=np.array(x_train['weight'])) # the weighting here ensures that as a whole, each HUC is given the same weight
+    model = clf.fit(x_train, y_train, sample_weight=np.array(x_train['weight'])) # the weighting here ensures that as a whole, each HUC is given the same weight
     # even if the number of samples is different. This is NOT the weighting of each aggregate class
     #model = clf.fit(x_train[feature_cols], y_train)
     prune_duplicate_leaves(model)
