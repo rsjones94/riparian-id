@@ -288,7 +288,7 @@ for mod in model_param_list:
     create_predictions_report(y_test=y_test, y_pred=y_pred,
                               class_names=class_names,
                               out_loc=os.path.join(rep_folder, f'aggregate_report_{model_name}_TRAINED.xlsx'),
-                              wts=None)
+                              wts=x_train['weight'])
 
     dist_mask_upper = df.loc[df['huc12'].isin(training_hucs)]['dstnc'] > 0
     dist_mask_lower = df.loc[df['huc12'].isin(training_hucs)]['dstnc'] <= riparian_distance
@@ -296,17 +296,18 @@ for mod in model_param_list:
 
     sub_y_test_riparian = [c for c, d in zip(y_test, dist_mask) if d]
     sub_y_pred_riparian = [p for p, d in zip(y_pred, dist_mask) if d]
+    weight_riparian = [p for p, d in zip(x_train['weight'], dist_mask) if d]
 
     create_predictions_report(y_test=sub_y_test_riparian, y_pred=sub_y_pred_riparian,
                               class_names=class_names,
                               out_loc=os.path.join(rep_folder, f'aggregate_report_{model_name}_TRAINED_RIPARIAN.xlsx'),
-                              wts=None)
+                              wts=weight_riparian)
 
     print(f'(aggregate naive report)')
     create_predictions_report(y_test=y_test_naive, y_pred=y_pred_naive,
                               class_names=class_names,
                               out_loc=os.path.join(rep_folder, f'aggregate_report_{model_name}_NAIVE.xlsx'),
-                              wts=None)
+                              wts=x_train_naive['weight'])
 
     dist_mask_upper = df.loc[df['huc12'].isin(naive_hucs)]['dstnc'] > 0
     dist_mask_lower = df.loc[df['huc12'].isin(naive_hucs)]['dstnc'] <= riparian_distance
@@ -314,11 +315,12 @@ for mod in model_param_list:
 
     sub_y_test_riparian = [c for c, d in zip(y_test_naive, dist_mask) if d]
     sub_y_pred_riparian = [p for p, d in zip(y_pred_naive, dist_mask) if d]
+    weight_riparian = [p for p, d in zip(x_train_naive['weight'], dist_mask) if d]
 
     create_predictions_report(y_test=sub_y_test_riparian, y_pred=sub_y_pred_riparian,
                               class_names=class_names,
                               out_loc=os.path.join(rep_folder, f'aggregate_report_{model_name}_NAIVE_RIPARIAN.xlsx'),
-                              wts=None)
+                              wts=weight_riparian)
 
     for shed in present_tables:
         if shed in naive_hucs:
