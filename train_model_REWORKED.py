@@ -295,6 +295,8 @@ for mod in model_param_list:
     dist_mask_upper = df.loc[df['huc12'].isin(training_hucs)]['dstnc'] > 0
     dist_mask_lower = df.loc[df['huc12'].isin(training_hucs)]['dstnc'] <= riparian_distance
     dist_mask = [a and b for a, b in zip(dist_mask_upper, dist_mask_lower)]
+    trained_frac_in_buffer = sum(dist_mask) / len(dist_mask)
+    print(f'{round(trained_frac_in_buffer*100, 2)}% within riparian buffer')
 
     sub_y_test_riparian = [c for c, d in zip(y_test, dist_mask) if d]
     sub_y_pred_riparian = [p for p, d in zip(y_pred, dist_mask) if d]
@@ -314,6 +316,8 @@ for mod in model_param_list:
     dist_mask_upper = df.loc[df['huc12'].isin(naive_hucs)]['dstnc'] > 0
     dist_mask_lower = df.loc[df['huc12'].isin(naive_hucs)]['dstnc'] <= riparian_distance
     dist_mask = [a and b for a, b in zip(dist_mask_upper, dist_mask_lower)]
+    naive_frac_in_buffer = sum(dist_mask) / len(dist_mask)
+    print(f'{round(naive_frac_in_buffer*100, 2)}% within riparian buffer')
 
     sub_y_test_riparian = [c for c, d in zip(y_test_naive, dist_mask) if d]
     sub_y_pred_riparian = [p for p, d in zip(y_pred_naive, dist_mask) if d]
@@ -394,7 +398,7 @@ for mod in model_param_list:
             Reclassing: {extended_reclass_map}
             Mapping: {name_mapping}
             Ignored classes: {ignore}
-            Riparian distance: {riparian_distance}
+            Riparian distance: {riparian_distance} ({round(trained_frac_in_buffer*100,4)}% of trained within buffer. {round(naive_frac_in_buffer*100,4)} of naive within buffer)
             """
         f.write(written)
 
