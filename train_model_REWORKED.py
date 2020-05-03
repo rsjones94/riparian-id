@@ -25,11 +25,11 @@ models_folder = r'F:\gen_model\models'
 n_rand = None  # number of samples from each table. None for all samples
 
 model_a = {
-    'model_name': 'genmodel_tern',
+    'model_name': 'genmodel_tern_TESTEROONI',
 
     'training_perc': 0.875,  # percent of data to train on
     'min_split': 0.01,  # minimum percentage of samples that a leaf must have to exist
-    'drop_cols': ['dstnc'],
+    'drop_cols': [],
     # cols not to use as feature classes. note that dem and dsm are already not included (and others depending on how DB was assembled)
     'class_col': 'classification',  # column that contains classification data
     'training_hucs': ['180500020905',
@@ -126,12 +126,14 @@ print(f'Data read. Elapsed time: {round(read_elap / 60, 2)} minutes')
 
 # now we actually begin running the models
 for mod in model_param_list:
+
+    # extract model parameters
+    model_name = mod['model_name']
+
     print('\n')
     print(f'Initializing model {model_name}')
     train_start = time.time()
 
-    # extract model parameters
-    model_name = mod['model_name']
 
     if mod['training_hucs'] is None:
         training_hucs = present_tables
@@ -157,7 +159,7 @@ for mod in model_param_list:
     # one dataset is the TRAINED data, i.e., the data from HUCs we will use to train the model (we will also set aside some of that data for internal validation)
     # the other dataset is NAIVE data, i.e., data from HUCs that the model was not trained on at all
 
-    df = pd.concat(present_tables, ignore_index=True)  # this is the master dataset. it contains ALL data
+    df = pd.concat([read_tables[huc] for huc in present_tables], ignore_index=True)  # this is the master dataset. it contains ALL data
 
     print(f'Remapping')
     co = Counter(df[class_col])
@@ -215,7 +217,9 @@ for mod in model_param_list:
                                  max_depth=max_depth,
                                  class_weight=class_weighting,
                                  min_samples_leaf=min_split)
-    model = clf.fit(x_train[feature_cols], y_train, sample_weight=np.array(x_train['weight']))
+    model = clf.fit(x_train[feature_cols], y_train, sample_weight=np.array(x_train['weight'])) # the weighting here ensures that as a whole, each HUC is given the same weight
+    # even if the number of samples is different. This is NOT the weighting of each aggregate class
+    #model = clf.fit(x_train[feature_cols], y_train)
     prune_duplicate_leaves(model)
     importances = model.feature_importances_
     # Predict the response for test dataset (and for the naive dataset)
@@ -247,29 +251,66 @@ for mod in model_param_list:
                               out_loc=os.path.join(rep_folder, f'aggregate_report_{model_name}_TRAINED.xlsx'),
                               wts=None)
 
+    dist_mask_upper = df.loc[df['huc12'].isin(training_hucs)]['dstnc'] > 0
+    dist_mask_lower = df.loc[df['huc12'].isin(training_hucs)]['dstnc'] <= riparian_distance
+    dist_mask = (a and b for a, b in zip(dist_mask_upper, dist_mask_lower))
+
+    sub_y_test_riparian = [c for c, d in zip(y_test, dist_mask) if d]
+    sub_y_pred_riparian = [p for p, d in zip(y_pred, dist_mask) if d]
+
+    create_predictions_report(y_test=sub_y_test_riparian, y_pred=sub_y_pred_riparian,
+                              class_names=class_names,
+                              out_loc=os.path.join(rep_folder, f'aggregate_report_{model_name}_TRAINED_RIPARIAN.xlsx'),
+                              wts=None)
+
     print(f'(aggregate naive report)')
     create_predictions_report(y_test=y_test_naive, y_pred=y_pred_naive,
                               class_names=class_names,
                               out_loc=os.path.join(rep_folder, f'aggregate_report_{model_name}_NAIVE.xlsx'),
                               wts=None)
 
+    dist_mask_upper = df.loc[df['huc12'].isin(naive_hucs)]['dstnc'] > 0
+    dist_mask_lower = df.loc[df['huc12'].isin(naive_hucs)]['dstnc'] <= riparian_distance
+    dist_mask = (a and b for a, b in zip(dist_mask_upper, dist_mask_lower))
+
+    sub_y_test_riparian = [c for c, d in zip(y_test_naive, dist_mask) if d]
+    sub_y_pred_riparian = [p for p, d in zip(y_pred_naive, dist_mask) if d]
+
+    create_predictions_report(y_test=sub_y_test_riparian, y_pred=sub_y_pred_riparian,
+                              class_names=class_names,
+                              out_loc=os.path.join(rep_folder, f'aggregate_report_{model_name}_NAIVE_RIPARIAN.xlsx'),
+                              wts=None)
+
     for shed in present_tables:
         if shed in naive_hucs:
             add_name = 'NAIVE'
             ex = x_test_naive
-            wi = y_test_naive
+            wi_test = y_test_naive
+            wi_pred = y_pred_naive
         elif shed in training_hucs:
             add_name = 'TRAINED'
             ex = x_test
-            wi = y_test
+            wi_test = y_test
+            wi_pred = y_pred
         print(f'({shed} report) - {add_name}')
 
-        mask = ex['huc12'] == shed
-        sub_y_test = [c for c,m in zip(wi, mask) if m]
-        sub_y_pred = [p for p,m in zip(wi, mask) if m]
+        huc_mask = ex['huc12'] == shed
+        dist_mask_upper = ex['dstnc'] > 0
+        dist_mask_lower = ex['dstnc'] <= riparian_distance
+        dist_mask = (a and b for a,b in zip(dist_mask_upper, dist_mask_lower))
+
+        sub_y_test = [c for c,m in zip(wi_test, huc_mask) if m]
+        sub_y_pred = [p for p,m in zip(wi_pred, huc_mask) if m]
         create_predictions_report(y_test=sub_y_test, y_pred=sub_y_pred,
                                   class_names=class_names,
                                   out_loc=os.path.join(rep_folder, f'{shed}_report_{model_name}_{add_name}.xlsx'),
+                                  wts=None)
+
+        sub_y_test_riparian = [c for c, m, d in zip(wi_test, huc_mask, dist_mask) if m and d]
+        sub_y_pred_riparian = [p for p, m, d in zip(wi_pred, huc_mask, dist_mask) if m and d]
+        create_predictions_report(y_test=sub_y_test_riparian, y_pred=sub_y_pred_riparian,
+                                  class_names=class_names,
+                                  out_loc=os.path.join(rep_folder, f'{shed}_report_{model_name}_{add_name}_RIPARIAN.xlsx'),
                                   wts=None)
 
     print('PACKAGING MODEL')

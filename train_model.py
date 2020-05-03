@@ -313,7 +313,7 @@ for mod in model_param_list:
         print(f'naive - ({shed} report)')
         mask = x_test_naive['huc12'] == shed
         sub_y_test = [c for c,m in zip(y_test_naive,mask) if m]
-        sub_y_pred = [p for p,m in zip(y_test_naive,mask) if m]
+        sub_y_pred = [p for p,m in zip(y_pred_naive,mask) if m]
         create_predictions_report(y_test=sub_y_test, y_pred=sub_y_pred,
                                   class_names=class_names,
                                   out_loc=os.path.join(rep_folder, f'{shed}_report_{model_name}_NAIVE.xlsx'),
