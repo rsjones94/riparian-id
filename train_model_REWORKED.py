@@ -61,7 +61,7 @@ model_a = {
         """
 }
 
-model_a = {
+model_b = {
     'model_name': 'genmodel_bin',
 
     'training_perc': 0.875,  # percent of data to train on
@@ -101,7 +101,7 @@ model_param_list = [model_a]
 
 ####
 
-# first step is housekeep
+# first step is housekeeping
 
 for mod in model_param_list:
     model_folder = os.path.join(models_folder, mod['model_name'])
@@ -144,7 +144,7 @@ present_tables = [f[0] for f in cursor.fetchall()]
 cursor.close()
 
 read_tables = {}
-
+present_tables = ['100301011309', '010500021301', '080102040304']  # FOR TESTING PURPOSES ONLY
 for tab in present_tables:
     print(f'Reading {tab}')
     if n_rand:
@@ -197,6 +197,8 @@ for mod in model_param_list:
     # the other dataset is NAIVE data, i.e., data from HUCs that the model was not trained on at all
 
     df = pd.concat([read_tables[huc] for huc in present_tables], ignore_index=True)  # this is the master dataset. it contains ALL data
+    if len(model_param_list) == 1:
+        del read_tables # this is a big chunk of memory that we can free up if we don't need to call it back up again later
 
     print(f'Remapping')
     co = Counter(df[class_col])
