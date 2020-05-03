@@ -22,12 +22,14 @@ from generate_full_predictions import create_predictions_report
 par = r'F:\gen_model'
 training_folder = r'F:\gen_model\training_sets'
 models_folder = r'F:\gen_model\models'
-n_rand = None  # number of samples from each table. None for all samples
+n_rand = None  # number of samples from each table. None for all samples. only one of n_rand and keep_frac should not be None
+keep_frac = None  # fraction of data from each HUC to keep. If None, keep all
+exclude_entirely = ['cellno', 'dhmcp', 'dhmcs', 'dhmco'] # used to lower memory requirements of model
 
 model_a = {
     'model_name': 'genmodel_tern',
 
-    'training_perc': 0.875,  # percent of data to train on
+    'training_perc': 0.75,  # percent of data to train on
     'min_split': 0.01,  # minimum percentage of samples that a leaf must have to exist
     'drop_cols': [],
     # cols not to use as feature classes. note that dem and dsm are already not included (and others depending on how DB was assembled)
@@ -61,41 +63,6 @@ model_a = {
         """
 }
 
-model_b = {
-    'model_name': 'genmodel_bin',
-
-    'training_perc': 0.875,  # percent of data to train on
-    'min_split': 0.01,  # minimum percentage of samples that a leaf must have to exist
-    'drop_cols': [],
-    # cols not to use as feature classes. note that dem and dsm are already not included (and others depending on how DB was assembled)
-    'class_col': 'classification',  # column that contains classification data
-    'training_hucs': ['180500020905',
-                      '070801050901',
-                      '130202090102',
-                      '080102040304',
-                      '010500021301',
-                      '030902040303',
-                      '140801040103'
-                      ],  # what HUCS to train on. If None, use all available. Otherwise input is list of strings
-
-    'reclassing': {
-        'trees': ['fo', 'li', 'in']
-    },  # classes to cram together. If None, take classes as they are
-
-    'ignore': ['wa', 'cr'],  # classes to exclude from the analysis entirely
-
-    'riparian_distance': 30,  # distance from a stream to be considered riparian
-
-    'class_weighting': 'balanced',
-    # None for proportional, 'balanced' to make inversely proportional to class frequency
-    'criterion': 'gini',  # entropy or gini
-    'max_depth': 6,  # max levels to decision tree
-    'notes':
-        """
-        This model uses all data from select HUCs to train a ternary classification scheme.
-        Meant to be applied to naive watersheds.
-        """
-}
 
 model_param_list = [model_a]
 
@@ -144,7 +111,7 @@ present_tables = [f[0] for f in cursor.fetchall()]
 cursor.close()
 
 read_tables = {}
-present_tables = ['102901110304', '010500021301', '080102040304']  # FOR TESTING PURPOSES ONLY
+# present_tables = ['102901110304', '010500021301', '080102040304']  # FOR TESTING PURPOSES ONLY
 for tab in present_tables:
     print(f'Reading {tab}')
     if n_rand:
@@ -152,7 +119,13 @@ for tab in present_tables:
     else:
         query = f"SELECT * FROM '{tab}'"
     df = pd.read_sql(query, conn)
-    df['weight'] = 1 / len(df.index)  # proportional weighting for each class
+    df['weight'] = 1 / len(df.index)  # proportional weighting for each HUC
+    if keep_frac:
+        df = df.sample(frac=keep_frac)
+
+    present_cols = df.columns
+    keep_cols = [p for p in present_cols if p not in exclude_entirely]
+    df = df[keep_cols]
     read_tables[tab] = df
 conn.close()
 
@@ -282,6 +255,9 @@ for mod in model_param_list:
     # Show graph
     # Image(graph.create_png())
 
+    decision_tree_pic = os.path.join(model_folder, 'decision_tree.pdf')
+    graph.write_pdf(decision_tree_pic)
+
     print(f'Finished training model. Writing reports')
     rep_folder = os.path.join(model_folder, 'reports')
     os.mkdir(rep_folder)
@@ -328,7 +304,10 @@ for mod in model_param_list:
                               out_loc=os.path.join(rep_folder, f'aggregate_report_{model_name}_NAIVE_RIPARIAN.xlsx'),
                               wts=weight_riparian)
 
+    del df
+
     for shed in present_tables:
+
         if shed in naive_hucs:
             add_name = 'NAIVE'
             ex = x_test_naive
@@ -348,17 +327,29 @@ for mod in model_param_list:
 
         sub_y_test = [c for c,m in zip(wi_test, huc_mask) if m]
         sub_y_pred = [p for p,m in zip(wi_pred, huc_mask) if m]
-        create_predictions_report(y_test=sub_y_test, y_pred=sub_y_pred,
-                                  class_names=class_names,
-                                  out_loc=os.path.join(rep_folder, f'{shed}_report_{model_name}_{add_name}.xlsx'),
-                                  wts=None)
+
+        try:
+            create_predictions_report(y_test=sub_y_test, y_pred=sub_y_pred,
+                                      class_names=class_names,
+                                      out_loc=os.path.join(rep_folder, f'{shed}_report_{model_name}_{add_name}.xlsx'),
+                                      wts=None)
+        except AssertionError:
+            print(f'Failed to generate report {shed}_report_{model_name}_{add_name}.xlsx')
 
         sub_y_test_riparian = [c for c, m, d in zip(wi_test, huc_mask, dist_mask) if m and d]
         sub_y_pred_riparian = [p for p, m, d in zip(wi_pred, huc_mask, dist_mask) if m and d]
-        create_predictions_report(y_test=sub_y_test_riparian, y_pred=sub_y_pred_riparian,
-                                  class_names=class_names,
-                                  out_loc=os.path.join(rep_folder, f'{shed}_report_{model_name}_{add_name}_RIPARIAN.xlsx'),
-                                  wts=None)
+
+        try:
+            create_predictions_report(y_test=sub_y_test_riparian, y_pred=sub_y_pred_riparian,
+                                      class_names=class_names,
+                                      out_loc=os.path.join(rep_folder, f'{shed}_report_{model_name}_{add_name}_RIPARIAN.xlsx'),
+                                      wts=None)
+        except AssertionError:
+            print(f'Failed to generate report {shed}_report_{model_name}_{add_name}_RIPARIAN.xlsx'
+                  f'\n This may be due to a lack of riparian cells')
+
+        if shed == '030902040303':
+            raise Exception
 
     print('PACKAGING MODEL')
 
@@ -373,9 +364,6 @@ for mod in model_param_list:
     pickle_importances_name = os.path.join(model_folder, 'importances_package.joblib')
     importances_package = {feat: imp for feat, imp in zip(feature_cols, importances)}
     dump(importances_package, pickle_importances_name)
-
-    decision_tree_pic = os.path.join(model_folder, 'decision_tree.pdf')
-    graph.write_pdf(decision_tree_pic)
 
     extended_reclass_map = reclassing.copy()
     if not perfect_mapping:
@@ -399,6 +387,7 @@ for mod in model_param_list:
             Mapping: {name_mapping}
             Ignored classes: {ignore}
             Riparian distance: {riparian_distance} ({round(trained_frac_in_buffer*100,4)}% of trained within buffer. {round(naive_frac_in_buffer*100,4)} of naive within buffer)
+            Overall data reduction %: {keep_frac}
             """
         f.write(written)
 
