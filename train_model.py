@@ -24,10 +24,47 @@ training_folder = r'F:\gen_model\training_sets'
 models_folder = r'F:\gen_model\models'
 n_rand = None  # number of samples from each table. None for all samples. only one of n_rand and keep_frac should not be None
 keep_frac = None  # fraction of data from each HUC to keep. If None, keep all
-exclude_entirely = ['cellno', 'dhmcp', 'dhmcs', 'dhmco'] # used to lower memory requirements of model
+exclude_entirely = ['cellno', 'demro', 'dhmco', 'dhmcp', 'dhmcs', 'dhmeg', 'dhmcp',
+                    'dhmet', 'dhmhc', 'dhmid', 'dhmin', 'dhmro', 'dsmro', 'nrero', 'nretu'] # used to lower memory requirements of model
 
 model_a = {
-    'model_name': 'genmodel_tern',
+    'model_name': 'simple_bin',
+
+    'training_perc': 0.75,  # percent of data to train on
+    'min_split': 0.01,  # minimum percentage of samples that a leaf must have to exist
+    'drop_cols': [],
+    # cols not to use as feature classes. note that dem and dsm are already not included (and others depending on how DB was assembled)
+    'class_col': 'classification',  # column that contains classification data
+    'training_hucs': ['180500020905',
+                      '070801050901',
+                      '130202090102',
+                      '080102040304',
+                      '010500021301',
+                      '030902040303',
+                      '140801040103'
+                      ],  # what HUCS to train on. If None, use all available. Otherwise input is list of strings
+
+    'reclassing': {
+        'trees': ['fo', 'li', 'in']
+    },  # classes to cram together. If None, take classes as they are
+
+    'ignore': [],  # classes to exclude from the analysis entirely
+
+    'riparian_distance': 30,  # distance from a stream to be considered riparian
+
+    'class_weighting': 'balanced',
+    # None for proportional, 'balanced' to make inversely proportional to class frequency
+    'criterion': 'gini',  # entropy or gini
+    'max_depth': 10,  # max levels to decision tree
+    'notes':
+        """
+        Binary classification for simple ArcGIS model
+        """
+}
+
+
+model_b = {
+    'model_name': 'simple_tern',
 
     'training_perc': 0.75,  # percent of data to train on
     'min_split': 0.01,  # minimum percentage of samples that a leaf must have to exist
@@ -45,26 +82,24 @@ model_a = {
 
     'reclassing': {
         'trees': ['fo', 'li', 'in'],
-        'rough': ['ue', 'we', 'rv']
+        'rough': ['rv', 'we', 'ue']
     },  # classes to cram together. If None, take classes as they are
 
-    'ignore': ['wa', 'cr'],  # classes to exclude from the analysis entirely
+    'ignore': [],  # classes to exclude from the analysis entirely
 
     'riparian_distance': 30,  # distance from a stream to be considered riparian
 
     'class_weighting': 'balanced',
     # None for proportional, 'balanced' to make inversely proportional to class frequency
     'criterion': 'gini',  # entropy or gini
-    'max_depth': 6,  # max levels to decision tree
+    'max_depth': 5,  # max levels to decision tree
     'notes':
         """
-        This model uses all data from select HUCs to train a ternary classification scheme.
-        Meant to be applied to naive watersheds.
+        Ternary classification for simple ArcGIS model
         """
 }
 
-
-model_param_list = [model_a]
+model_param_list = [model_a, model_b]
 
 ####
 
@@ -348,9 +383,6 @@ for mod in model_param_list:
             print(f'Failed to generate report {shed}_report_{model_name}_{add_name}_RIPARIAN.xlsx'
                   f'\n This may be due to a lack of riparian cells')
 
-        if shed == '030902040303':
-            raise Exception
-
     print('PACKAGING MODEL')
 
     pickle_clf_name = os.path.join(model_folder, 'clf_package.joblib')
@@ -369,6 +401,9 @@ for mod in model_param_list:
     if not perfect_mapping:
         extended_reclass_map['other'] = 'ALL OTHERS'
 
+    if keep_frac is None:
+        keep_frac = 'All'
+
     name_mapping = {i + 1: na for i, na in enumerate(class_names)}
 
     meta_txt = os.path.join(model_folder, 'meta.txt')
@@ -386,8 +421,8 @@ for mod in model_param_list:
             Reclassing: {extended_reclass_map}
             Mapping: {name_mapping}
             Ignored classes: {ignore}
-            Riparian distance: {riparian_distance} ({round(trained_frac_in_buffer*100,4)}% of trained within buffer. {round(naive_frac_in_buffer*100,4)} of naive within buffer)
-            Overall data reduction %: {keep_frac}
+            Riparian distance: {riparian_distance} ({round(trained_frac_in_buffer*100,4)}% of trained within buffer. {round(naive_frac_in_buffer*100,4)}% of naive within buffer)
+            % of data retained: {keep_frac}
             """
         f.write(written)
 
