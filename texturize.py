@@ -136,8 +136,9 @@ def texturize_dhm(dhm, dem, out_file, filter_size=3):
 
 
 dhm = r'F:\gen_model\texture_testing\MT_Helena_2012_000356_dighm.tif'
-dem = r'F:\gen_model\study_areas\100301011309\study_LiDAR\products\tiled\MT_Helena_2012_000356\MT_Helena_2012_000356_digsm.tif'
+dem = r'F:\gen_model\study_areas\100301011309\study_LiDAR\products\tiled\MT_Helena_2012_000356\MT_Helena_2012_000356_digel.tif'
+# is the DSM better? gives nice texture in foresty but single returny areas, though raisins are a problem
 filt_size = 9
-out = f'F:\\gen_model\\texture_testing\\detrend_dem_filt{filt_size}.tif'
+out = f'F:\\gen_model\\texture_testing\\detrend_dem_filt{filt_size}_withDEM.tif'
 
 texturize_dhm(dhm, dem, out, filter_size=filt_size)
