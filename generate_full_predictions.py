@@ -149,12 +149,19 @@ def create_predictions_report(y_test, y_pred, class_names, out_loc, wts=None):
                                            sample_weight=wts,
                                            target_names=class_names,
                                            output_dict=True)
+
+    kap = metrics.cohen_kappa_score(y_test, y_pred, sample_weight=wts)
+
     df_re = pd.DataFrame(report).transpose()
 
     df_re['precision']['accuracy'] = np.nan
     df_re['recall']['accuracy'] = np.nan
     df_re['support']['accuracy'] = np.nan
 
+    df_kap = pd.Series({'kappa': kap})
+
+
     with pd.ExcelWriter(out_loc) as writer:
         df_re.to_excel(writer, sheet_name='report')
         df_cm.to_excel(writer, sheet_name='confusion')
+        df_kap.to_excel(writer, sheet_name='kappa')

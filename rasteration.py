@@ -11,6 +11,9 @@ import ogr
 import gdal
 import whitebox
 import laspy
+import scipy
+import osr
+import scipy.ndimage as ndi
 
 wbt = whitebox.WhiteboxTools()
 
@@ -72,6 +75,7 @@ def rasteration(data_folder, products_folder, resolution=1, remove_buildings=Tru
         demname = outname+'_digel.tif'
         dsmname = outname + '_digsm.tif'
         nreturnsname = outname + '_nretu.tif'
+        intensityname = outname + '_inten.tif'
 
         block_print()  # wbt has EXTREMELY obnoxious printouts
 
@@ -92,14 +96,12 @@ def rasteration(data_folder, products_folder, resolution=1, remove_buildings=Tru
                                    returns='last', resolution=resolution, exclude_cls='7,18')  # , exclude_cls='7,13,14,18'
 
         # make the digital elevation model (trees, etc. removed)
-        # only keep ground road water
         if not os.path.exists(demname):
             wbt.lidar_tin_gridding(i=filename, output=demname, parameter='elevation',
-                                   returns='last', resolution=resolution, exclude_cls='7,18')  # , exclude_cls=keep([2,9,11])
+                                   returns='last', resolution=resolution, exclude_cls='7,18')  # , exclude_cls=keep([2,9,11]) only keep ground road water
 
         # make the digital surface model
         # keep everything except noise and wires and maybe buildings
-
         if not os.path.exists(dsmname):
             if remove_buildings:
                 cls = '6,7,13,14,18'
@@ -108,78 +110,11 @@ def rasteration(data_folder, products_folder, resolution=1, remove_buildings=Tru
             wbt.lidar_tin_gridding(i=filename, output=dsmname, parameter='elevation',
                                    returns='first', resolution=resolution, exclude_cls='7,18')  # , exclude_cls=cls
 
-        """
-        # make the digital height model
-        dhmname = outname+'_dighe.tif'
-        if not os.path.exists(dhmname):
-            wbt.subtract(dsmname, demname, dhmname)
-        """
 
-        """
-        # avg intensity (all returns)
-        # keep everything except noise and wires
-        allintensname = outname+'_allintens.tif'
-        wbt.lidar_tin_gridding(i=filename, output=allintensname, parameter='intensity', returns='all',
-                               resolution=resolution,
-                               exclude_cls='7,13,14,18')
-
-        # avg intensity (first returns)
-        # keep everything except noise and wires
-        firstintensname = outname+'_firstintens.tif'
-        wbt.lidar_tin_gridding(i=filename, output=firstintensname, parameter='intensity', returns='first', resolution=resolution,
-                               exclude_cls='7,13,14,18')
-        """
-
-        """
-        # make the DEM slope raster
-        demslopename = outname+'_demsl.tif'
-        if not os.path.exists(demslopename):
-            wbt.slope(dem=demname, output=demslopename)
-
-        # make the DSM slope raster
-        dsmslopename = outname+'_dsmsl.tif'
-        if not os.path.exists(dsmslopename):
-            wbt.slope(dem=dsmname, output=dsmslopename)
-
-        # make the DHM slope raster
-        dhmslopename = outname+'_dhmsl.tif'
-        if not os.path.exists(dhmslopename):
-            wbt.slope(dem=dhmname, output=dhmslopename)
-
-        # make a DEM roughness file, kernel width = 11
-        demroughname = outname+'_demro.tif'
-        if not os.path.exists(demroughname):
-            wbt.average_normal_vector_angular_deviation(dem=demname, output=demroughname, filter=11)
-
-        # make a DSM roughness file, kernel width = 11
-        dsmroughname = outname+'_dsmro.tif'
-        if not os.path.exists(dsmroughname):
-            wbt.average_normal_vector_angular_deviation(dem=dsmname, output=dsmroughname, filter=11)
-
-        # make a DHM roughness file, kernel width = 11
-        dhmroughname = outname+'_dhmro.tif'
-        if not os.path.exists(dhmroughname):
-            wbt.average_normal_vector_angular_deviation(dem=dhmname, output=dhmroughname, filter=11)
-
-        """
-
-        """
-        # make the 1st return intensity slope raster
-        firstintensslopename = outname + '_firstintensslope.tif'
-        wbt.slope(firstintensname,firstintensslopename)
-        """
-
-
-        # make a tif of the avg number of returns in a cell
-        """
-        wbt.lidar_point_stats(i=filename, resolution=resolution, num_points=True, num_pulses=True)
-        pulse_file = filename[:-4] +'_num_pulses.tif'
-        pt_file = filename[:-4] + '_num_pnts.tif'
-        nreturnsname = outname + '_nretu.tif'
-        wbt.divide(pulse_file, pt_file, nreturnsname)
-        os.remove(pulse_file)
-        os.remove(pt_file)
-        """
+        # make the intensity model (trees, etc. removed)
+        if not os.path.exists(intensityname):
+            wbt.lidar_tin_gridding(i=filename, output=intensityname, parameter='intensity',
+                                   returns='all', resolution=resolution, exclude_cls='7,18')  # , exclude_cls=keep([2,9,11]) only keep ground road water
 
         # timing
         enable_print()
@@ -267,8 +202,8 @@ def mosaic_folders(parent, cut_fol, shpf, spatial_ref, path_to_gdal=r'C:\OSGeo4W
 
     Args:
         parent: the parent directory
-        cut_fol: where to copy cuts to
-        shpf: shapefile to cut with
+        cut_fol: where to copy cuts to (defunct)
+        shpf: shapefile to cut with (defunct)
         spatial_ref: EPSG code
         path_to_gdal: the path to you GDAL bin
 
@@ -374,6 +309,7 @@ def calc_stats_and_ref(folder, spatial_ref, path_to_gdal=r'C:\OSGeo4W64\bin'):
             print(f'Run stats command: {stat_command}')
             os.system(stat_command)
 
+
 def generate_haralicks(in_file, out_folder, out_basename, min_val, max_val, n_bin,
                     path_to_gdal=r'C:\OSGeo4W64\bin', path_to_orfeo=r'C:\OTB-7.0.0-Win64\bin'):
     """
@@ -399,7 +335,7 @@ def generate_haralicks(in_file, out_folder, out_basename, min_val, max_val, n_bi
     orf_int = os.path.join(out_folder,'orfeo_intermediate.tif')
     os.chdir(path_to_orfeo)
     orfeo_command = f'otbcli_HaralickTextureExtraction -parameters.min {min_val} -parameters.max {max_val} ' \
-              f'-parameters.nbbin {n_bin} -in {in_file} -out {orf_int}'
+              f'-parameters.nbbin {n_bin} -in {in_file} -out {orf_int} -ram 8000'
     print(f'Generating Haralick textures: {orfeo_command}')
     os.system(orfeo_command)
 
@@ -412,6 +348,49 @@ def generate_haralicks(in_file, out_folder, out_basename, min_val, max_val, n_bi
         os.system(gdal_command)
     os.remove(orf_int)
     os.chdir(di)
+
+
+def generate_laplace(in_file, out_file):
+    """
+    Takes a raster and applies a Lapalcian filter to it
+
+    Args:
+        in_file: input raster
+        out_file: output raster
+
+    Returns:
+        Nothing
+
+    """
+
+    print(f'Generating Laplacian texture: {out_file}')
+
+    img = gdal.Open(in_file)
+    ds = img.GetGeoTransform()
+    ulx, xres, xskew, uly, yskew, yres = ds
+    nx = img.RasterXSize
+    ny = img.RasterYSize
+
+    driver = gdal.GetDriverByName("GTiff")
+    outdata = driver.Create(out_file, nx, ny, 1, gdal.GDT_Float32)
+    outdata.SetGeoTransform(img.GetGeoTransform())  ##sets same geotransform as input
+    outdata.SetProjection(img.GetProjection())  ##sets same projection as input
+
+    in_band = img.GetRasterBand(1)
+    in_array = in_band.ReadAsArray()
+    nodata_val = in_band.GetNoDataValue()
+    print('Filtering')
+    array = ndi.laplace(in_array)
+
+    print('Writing')
+    outdata.GetRasterBand(1).WriteArray(array)
+    outdata.GetRasterBand(1).SetNoDataValue(nodata_val)  ##if you want these values transparent
+    outdata.FlushCache()  ##saves to disk!!
+    outdata = None
+    band = None
+    ds = None
+
+    print('Laplacian successfully generated')
 
 
 def big_derivs(folder):
@@ -441,8 +420,11 @@ def big_derivs(folder):
     nreturnsroughnessname = os.path.join(folder, 'nrero.tif')
 
     dhmenergyname = os.path.join(folder, 'dhmeg.tif')
+    dsmenergyname = os.path.join(folder, 'dsmeg.tif')
 
     dstncname = os.path.join(folder, 'dstnc.tif')
+
+    dmsmlaplacename = os.path.join(folder, 'dsmlp.tif')
 
     #nreteturnspercentovermeanname = os.path.join(folder, 'nrepo.tif') # number of returns, percent over mean
 
@@ -512,9 +494,43 @@ def big_derivs(folder):
         print(f'{nreturnsroughnessname} exists. Skipping generation....')
 
     if not os.path.exists(dhmenergyname):
-        generate_haralicks(dhmname, folder, 'dhm', 0, 12, 48) # generate textures using dhm, max height of 12m and bins of 0.25m. Was previously 32m and bins of 0.5m
+        # open raster and choose band to find min, max
+        raster = dhmname
+        gtif = gdal.Open(raster)
+        srcband = gtif.GetRasterBand(1)
+        # Get raster statistics
+        stats = srcband.GetStatistics(True, True)
+        mini, maxi, mean, stdev = stats[0], stats[1], stats[2], stats[3]
+        top = int(maxi)
+        nbins = top*2
+
+        generate_haralicks(dhmname, folder, 'dhm', 0, 24, 24*2) # max height of 24m and bins of 0.5m
+        # previous max height of 12m and bins of 0.25m. previous 2x 32m and bins of 0.5m
     else:
         print(f'{dhmenergyname} exists. Skipping generation....')
+
+    if not os.path.exists(dmsmlaplacename):
+        generate_laplace(dsmname, dmsmlaplacename) # generate textures using dhm, max height of max(dhm) and bins of 0.5m
+        # previous max height of 12m and bins of 0.25m. previous 2x 32m and bins of 0.5m
+    else:
+        print(f'{dmsmlaplacename} exists. Skipping generation....')
+
+
+    """if not os.path.exists(dsmenergyname):
+        # open raster and choose band to find min, max
+        raster = dsmname
+        gtif = gdal.Open(raster)
+        srcband = gtif.GetRasterBand(1)
+        # Get raster statistics
+        stats = srcband.GetStatistics(True, True)
+        mini, maxi, mean, stdev = stats[0], stats[1], stats[2], stats[3]
+        bot = int(mini)
+        top = int(maxi)
+        nbins = (top-bot)*2
+        #print(f'\n\n\n\n\n !!!!!!!!!!!! Bot: {bot}, top: {top}, bins: {nbins} !!!!!!!!!!!!! \n\n\n\n\n')
+        generate_haralicks(dsmname, folder, 'dsm', bot, top, nbins) # generate textures using dsm, min and max dependent on dsm and bins of 0.5m
+    else:
+        print(f'{dsmenergyname} exists. Skipping generation....')"""
 
 
 def createBuffer(inputfn, outputBufferfn, bufferDist):

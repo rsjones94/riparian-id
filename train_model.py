@@ -28,10 +28,10 @@ exclude_entirely = ['cellno', 'demro', 'dhmco', 'dhmcp', 'dhmcs', 'dhmeg', 'dhmc
                     'dhmet', 'dhmhc', 'dhmid', 'dhmin', 'dhmro', 'dsmro', 'nrero', 'nretu'] # used to lower memory requirements of model
 
 model_a = {
-    'model_name': 'simple_bin',
+    'model_name': 'bin_deep',
 
-    'training_perc': 0.75,  # percent of data to train on
-    'min_split': 0.01,  # minimum percentage of samples that a leaf must have to exist
+    'training_perc': 0.8,  # percent of data to train on
+    'min_split': 0.001,  # minimum percentage of samples that a leaf must have to exist
     'drop_cols': [],
     # cols not to use as feature classes. note that dem and dsm are already not included (and others depending on how DB was assembled)
     'class_col': 'classification',  # column that contains classification data
@@ -55,19 +55,19 @@ model_a = {
     'class_weighting': 'balanced',
     # None for proportional, 'balanced' to make inversely proportional to class frequency
     'criterion': 'gini',  # entropy or gini
-    'max_depth': 10,  # max levels to decision tree
+    'max_depth': 20,  # max levels to decision tree
     'notes':
         """
-        Binary classification for simple ArcGIS model
+        Standard binary classification
         """
 }
 
 
 model_b = {
-    'model_name': 'simple_tern',
+    'model_name': 'tern_deep',
 
-    'training_perc': 0.75,  # percent of data to train on
-    'min_split': 0.01,  # minimum percentage of samples that a leaf must have to exist
+    'training_perc': 0.8,  # percent of data to train on
+    'min_split': 0.001,  # minimum percentage of samples that a leaf must have to exist
     'drop_cols': [],
     # cols not to use as feature classes. note that dem and dsm are already not included (and others depending on how DB was assembled)
     'class_col': 'classification',  # column that contains classification data
@@ -92,10 +92,10 @@ model_b = {
     'class_weighting': 'balanced',
     # None for proportional, 'balanced' to make inversely proportional to class frequency
     'criterion': 'gini',  # entropy or gini
-    'max_depth': 5,  # max levels to decision tree
+    'max_depth': 20,  # max levels to decision tree
     'notes':
         """
-        Ternary classification for simple ArcGIS model
+        Standard ternary classification
         """
 }
 
