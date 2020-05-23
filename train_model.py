@@ -25,10 +25,10 @@ models_folder = r'F:\gen_model\models'
 n_rand = None  # number of samples from each table. None for all samples. only one of n_rand and keep_frac should not be None
 keep_frac = None  # fraction of data from each HUC to keep. If None, keep all
 exclude_entirely = ['cellno', 'demro', 'dhmco', 'dhmcp', 'dhmcs', 'dhmeg', 'dhmcp',
-                    'dhmet', 'dhmhc', 'dhmid', 'dhmin', 'dhmro', 'dsmro', 'nrero', 'nretu'] # used to lower memory requirements of model
+                    'dhmet', 'dhmhc', 'dhmid', 'dhmin', 'nrero', 'nretu', 'dhmro', 'dighe', 'dhmsl'] # used to lower memory requirements of model
 
 model_a = {
-    'model_name': 'bin_deep',
+    'model_name': 'bin_deep_massagedDHM',
 
     'training_perc': 0.8,  # percent of data to train on
     'min_split': 0.001,  # minimum percentage of samples that a leaf must have to exist
@@ -99,7 +99,7 @@ model_b = {
         """
 }
 
-model_param_list = [model_a, model_b]
+model_param_list = [model_a]
 
 ####
 

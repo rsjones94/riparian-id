@@ -15,6 +15,8 @@ import scipy
 import osr
 import scipy.ndimage as ndi
 
+from filter_dhm import filter_dhm
+
 wbt = whitebox.WhiteboxTools()
 
 # disable printing
@@ -426,6 +428,9 @@ def big_derivs(folder):
 
     dmsmlaplacename = os.path.join(folder, 'dsmlp.tif')
 
+    fidhmname = os.path.join(folder, 'fidhm.tif')
+    fidhmlaplacename = os.path.join(folder, 'fidhl.tif')
+
     #nreteturnspercentovermeanname = os.path.join(folder, 'nrepo.tif') # number of returns, percent over mean
 
     # cubic convolution resampling
@@ -514,6 +519,16 @@ def big_derivs(folder):
         # previous max height of 12m and bins of 0.25m. previous 2x 32m and bins of 0.5m
     else:
         print(f'{dmsmlaplacename} exists. Skipping generation....')
+
+    if not os.path.exists(fidhmname):
+        filter_dhm(dhmname, fidhmname)
+    else:
+        print(f'{fidhmname} exists. Skipping generation....')
+
+    if not os.path.exists(fidhmlaplacename):
+        generate_laplace(fidhmname, fidhmlaplacename)
+    else:
+        print(f'{fidhmlaplacename} exists. Skipping generation....')
 
 
     """if not os.path.exists(dsmenergyname):

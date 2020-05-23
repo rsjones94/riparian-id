@@ -9,10 +9,9 @@ from generate_full_predictions import predict_cover
 
 #hucs = ['010500021301', '030902040303', '070801050901', '080102040304', '130202090102', '140801040103', '180500020905']
 #hucs = ['custom2']
-hucs = ['100301011309',
-        '102901110304',
+hucs = ['100301011309'
         ]
-models = ['genmodel_tern', 'genmodel_bin']
+models = ['bin_deep']
 
 ###
 par = r'F:\gen_model'

@@ -10,6 +10,7 @@ import gdal
 import numpy as np
 
 from fit_plane_to_points import fit_plane
+from rasteration import generate_laplace
 
 ex = np.array([[1,2,1],[3,-1,2],[1,1,2]])
 
@@ -50,17 +51,20 @@ def residual_filter(a, nodata_val=None):
     return residual
 
 
-def texturize_dhm(dhm, dem, out_file, filter_size=3):
+def texturize_dhm(dsm, out_file, filter_size=3, remove_outliers=True, dhm=None):
     """
-    Adds the local texture fro ma dem to a DHM so the DHM can be used more effectively with e.g., Haralick textures.
-    That output will share projection and NoData vals with the input DEM. The DHM and DEM must have the same shape
+    Adds the local texture fro ma dsm to a DHM so the DHM can be used more effectively with e.g., Haralick textures.
+    That output will share projection and NoData vals with the input dsm. The DHM and dsm must have the same shape
 
     Args:
-        dhm: path to input digital height model
-        dem: path to digital elevation model from which the DHM was derived
+        dsm: path to digital surface model from which the DHM was derived
         out_file: output path
         filter_size: size of the textural operator. For example, a size of 3 will filter using a 3x3 window. The filter
         size must be odd.
+        remove_outliers: whether or not to filter values outside of a window. If outlier removal is desired,
+            pass a list of length two of the form [low_percentile, high_percentile]. For example, [1, 99] will keep
+            values only falling between the 1st and 99th percentile.
+        dhm: path to input digital height model. If specified, the texture will be layered onto the dhm
 
     Returns:
         Nothing
@@ -75,8 +79,8 @@ def texturize_dhm(dhm, dem, out_file, filter_size=3):
     print(f'Texturizing: {out_file}')
 
 
-    print('Reading DEM')
-    img = gdal.Open(dem)
+    print('Reading dsm')
+    img = gdal.Open(dsm)
     ds = img.GetGeoTransform()
     ulx, xres, xskew, uly, yskew, yres = ds
     nx = img.RasterXSize
@@ -89,40 +93,53 @@ def texturize_dhm(dhm, dem, out_file, filter_size=3):
 
     in_band = img.GetRasterBand(1)
     in_array = in_band.ReadAsArray()
-    dem_nodata_val = in_band.GetNoDataValue()
+    dsm_nodata_val = in_band.GetNoDataValue()
+    print(f'NoData: {dsm_nodata_val}')
 
     print('Filtering')
-    filtered_dem = ndimage.filters.generic_filter(in_array,
+    filtered_dsm = ndimage.filters.generic_filter(in_array,
                                            residual_filter,
                                            size=(filter_size,filter_size),
-                                           mode='constant',
-                                           cval=0,
-                                           extra_keywords={'nodata_val': dem_nodata_val})
+                                           mode='nearest',
+                                           extra_keywords={'nodata_val': dsm_nodata_val})
 
-    print('Reading DHM')
-    img = gdal.Open(dhm)
-    ds = img.GetGeoTransform()
-    ulx, xres, xskew, uly, yskew, yres = ds
-    nx = img.RasterXSize
-    ny = img.RasterYSize
+    if dhm:
+        print('Reading DHM')
+        img = gdal.Open(dhm)
+        ds = img.GetGeoTransform()
+        ulx, xres, xskew, uly, yskew, yres = ds
+        nx = img.RasterXSize
+        ny = img.RasterYSize
 
-    driver = gdal.GetDriverByName("GTiff")
-    outdata = driver.Create(out_file, nx, ny, 1, gdal.GDT_Float32)
-    outdata.SetGeoTransform(img.GetGeoTransform())  ##sets same geotransform as input
-    outdata.SetProjection(img.GetProjection())  ##sets same projection as input
+        driver = gdal.GetDriverByName("GTiff")
+        outdata = driver.Create(out_file, nx, ny, 1, gdal.GDT_Float32)
+        outdata.SetGeoTransform(img.GetGeoTransform())  ##sets same geotransform as input
+        outdata.SetProjection(img.GetProjection())  ##sets same projection as input
 
-    in_band = img.GetRasterBand(1)
-    dhm_array = in_band.ReadAsArray()
-    dhm_nodata_val = in_band.GetNoDataValue()
+        in_band = img.GetRasterBand(1)
+        out_array = in_band.ReadAsArray()
+        dhm_nodata_val = in_band.GetNoDataValue()
 
-    print('Merging DHM and filtered DEM')
-    # For every element, use the filtered DEM value if the DHM <= 0, else use the DHM value. If either element is
-    # the respective NoData value, write in the DEM NoData value
-    dhm_array[dhm_array <= 0] = filtered_dem[dhm_array <= 0] # generally NoData values are a negative number, so this should convert NoDatas as well
+        print('Merging DHM and filtered dsm')
+        # For every element, use the filtered dsm value if the DHM <= 0, else use the DHM value. If either element is
+        # the respective NoData value, write in the dsm NoData value
+        out_array[out_array <= 0] = filtered_dsm[out_array <= 0] # generally NoData values are a negative number, so this should convert NoDatas as well
+    else:
+        out_array = filtered_dsm
+
+    if remove_outliers:
+        print('Removing outliers')
+        out_array[out_array == dsm_nodata_val] = np.nan
+
+        lowfilt, highfilt = np.nanpercentile(out_array, remove_outliers)
+        print(lowfilt, highfilt)
+
+        out_array[out_array < lowfilt] = lowfilt
+        out_array[out_array > highfilt] = highfilt
 
     print('Writing')
-    outdata.GetRasterBand(1).WriteArray(dhm_array)
-    outdata.GetRasterBand(1).SetNoDataValue(dhm_nodata_val)  ##if you want these values transparent
+    outdata.GetRasterBand(1).WriteArray(out_array)
+    outdata.GetRasterBand(1).SetNoDataValue(dsm_nodata_val)  ##if you want these values transparent
     outdata.FlushCache()  ##saves to disk!!
     outdata = None
     band = None
@@ -134,11 +151,18 @@ def texturize_dhm(dhm, dem, out_file, filter_size=3):
     elap = round(final-start, 2)
     print(f'Texturization time: {round(elap/60,2)} minutes')
 
+"""
+nums = [3, 5, 7, 9]
+for i in nums:
+    dhm = r'F:\gen_model\texture_testing\MT_Helena_2012_000356_dighm.tif'
+    #dsm = r'F:\gen_model\study_areas\100301011309\study_LiDAR\products\tiled\MT_Helena_2012_000356\MT_Helena_2012_000356_digsm.tif'
+    dsm = r'F:\gen_model\texture_testing\sub\subsubdsm.tif'
+    # is the DSM better? gives nice texture in foresty but single returny areas, though raisins are a problem
+    filt_size = i
+    #out = f'F:\\gen_model\\texture_testing\\detrend_dsm_filt{filt_size}.tif'
+    out = f'F:\\gen_model\\texture_testing\\sub\\detrend_dsm_filt{filt_size}_outlier_removal.tif'
+    lap_out = f'F:\\gen_model\\texture_testing\\sub\\laplace_dsm.tif'
 
-dhm = r'F:\gen_model\texture_testing\MT_Helena_2012_000356_dighm.tif'
-dem = r'F:\gen_model\study_areas\100301011309\study_LiDAR\products\tiled\MT_Helena_2012_000356\MT_Helena_2012_000356_digel.tif'
-# is the DSM better? gives nice texture in foresty but single returny areas, though raisins are a problem
-filt_size = 9
-out = f'F:\\gen_model\\texture_testing\\detrend_dem_filt{filt_size}_withDEM.tif'
-
-texturize_dhm(dhm, dem, out, filter_size=filt_size)
+    #texturize_dhm(dsm=dsm, out_file=out, filter_size=filt_size, remove_outliers=[1,99])
+    generate_laplace(dsm, lap_out)
+"""
