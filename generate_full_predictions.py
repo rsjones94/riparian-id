@@ -64,6 +64,7 @@ def predict_cover(huc_folder, out_folder, feature_cols, clf, importances, epsg):
     band_vals = {}
     band_nodatas = {}
     submasks = []
+    print(img.RasterCount)
     for band in range(img.RasterCount):
         band += 1
         band_name = band_dict[band][:-4]
@@ -82,18 +83,20 @@ def predict_cover(huc_folder, out_folder, feature_cols, clf, importances, epsg):
         else:
             print(f'{band_name} unimportant')
             blank_length = nx*ny
-            flat_array = np.zeros[blank_length]
+            flat_array = np.zeros(blank_length)
 
         band_vals[band_name] = flat_array
 
     print('Generating mask')
     mask = np.array(list(map(all, zip(*submasks)))) # logical elementwise AND of all sublists
+    del submasks
 
     print('Generating dataframe')
     data = pd.DataFrame(band_vals)
-
     del band_vals
-    del submasks
+
+    print(data.columns)
+    print(importances.keys())
 
     print('Making predictions')
     y = decision_tree.predict(data)

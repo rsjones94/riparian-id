@@ -9,9 +9,8 @@ from generate_full_predictions import predict_cover
 
 #hucs = ['010500021301', '030902040303', '070801050901', '080102040304', '130202090102', '140801040103', '180500020905']
 #hucs = ['custom2']
-hucs = ['100301011309'
-        ]
-models = ['bin_deep']
+hucs = ['missouri_sub', 'nawlins_sub', 'montana_sub']
+models = ['bin_deep_massagedDHM_v2']
 
 ###
 par = r'F:\gen_model'

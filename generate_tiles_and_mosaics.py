@@ -11,7 +11,7 @@ from rasteration import *
 
 ovr_tiles = False
 ovr_copy = False
-ovr_d2strm = False
+ovr_d2strm = True
 
 par = r'F:\gen_model'
 sas = pd.read_excel(os.path.join(par, r'study_areas.xlsx'), dtype={'HUC12': object})
@@ -21,7 +21,7 @@ par = os.path.join(par, r'study_areas')
 
 folders = os.listdir(par)
 # only keep folders that start with a number
-folders = [f for f in folders if f[0].isdigit()]
+# folders = [f for f in folders if f[0].isdigit()]
 
 failed = []
 success = []
@@ -31,8 +31,8 @@ st = time.time()
 for i, sub in enumerate(folders):
     print(f'\n\n!!!!!!!!!!!!!!!\n Working on {sub}, {i + 1} of {total_n} \n!!!!!!!!!!!!!!!\n\n')
 
-    """if sub != '180500020905':
-        continue"""
+    if sub != 'missouri_sub':
+        continue
 
     working = os.path.join(par, sub)
     lidar_folder = os.path.join(working, 'LiDAR')
@@ -48,6 +48,8 @@ for i, sub in enumerate(folders):
     copy_target = os.path.join(working, 'study_LiDAR', 'products', 'mosaic')
     cut_target = os.path.join(working, 'study_LiDAR', 'products', 'clipped')
     copy_tiles(rasteration_target, copy_target, overwrite=ovr_copy)
+
+    print('Files copied successfully (or they were present already)....')
 
     cut_shape = os.path.join(working, 'study_area', 'study_area_r.shp')
 

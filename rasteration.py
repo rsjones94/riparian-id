@@ -279,6 +279,12 @@ def mosaic_folders(parent, cut_fol, shpf, spatial_ref, path_to_gdal=r'C:\OSGeo4W
 
 
     big_derivs(parent)
+
+    messed_up_dighe_ref = os.path.join(parent, 'dighe.tif.aux.xml')
+    #print(messed_up_dighe_ref)
+    if os.path.exists(messed_up_dighe_ref):
+        os.remove(messed_up_dighe_ref)
+
     calc_stats_and_ref(parent, spatial_ref, path_to_gdal)
 
     final = time.time()
@@ -430,6 +436,8 @@ def big_derivs(folder):
 
     fidhmname = os.path.join(folder, 'fidhm.tif')
     fidhmlaplacename = os.path.join(folder, 'fidhl.tif')
+    fidhmslopename = os.path.join(folder, 'fidhs.tif')
+    fidhmroughnessname = os.path.join(folder, 'fidhr.tif')
 
     #nreteturnspercentovermeanname = os.path.join(folder, 'nrepo.tif') # number of returns, percent over mean
 
@@ -529,6 +537,21 @@ def big_derivs(folder):
         generate_laplace(fidhmname, fidhmlaplacename)
     else:
         print(f'{fidhmlaplacename} exists. Skipping generation....')
+
+    # make the filtered DHM slope raster
+    if not os.path.exists(fidhmslopename):
+        print(f'Generating filtered DHM slope')
+        wbt.slope(dem=fidhmname, output=fidhmslopename)
+    else:
+        print(f'{fidhmslopename} exists. Skipping generation....')
+
+    # make the filtered DHM roughness raster
+    if not os.path.exists(fidhmroughnessname):
+        command = f'gdaldem roughness {fidhmname} {fidhmroughnessname}'
+        print(f'Run DSM roughness command: {command}')
+        os.system(command)
+    else:
+        print(f'{fidhmroughnessname} exists. Skipping generation....')
 
 
     """if not os.path.exists(dsmenergyname):
