@@ -25,23 +25,18 @@ models_folder = r'F:\gen_model\models'
 n_rand = None  # number of samples from each table. None for all samples. only one of n_rand and keep_frac should not be None
 keep_frac = None  # fraction of data from each HUC to keep. If None, keep all
 exclude_entirely = ['cellno', 'demro', 'dhmco', 'dhmcp', 'dhmcs', 'dhmeg', 'dhmcp',
-                    'dhmet', 'dhmhc', 'dhmid', 'dhmin', 'nrero', 'nretu', 'dhmro', 'dhmsl', 'dhmro', 'inten', 'dighe'] # used to lower memory requirements of model
+                    'dhmet', 'dhmhc', 'dhmid', 'dhmin', 'nrero', 'nretu', 'dhmro', 'dhmsl', 'dhmro', 'dighe'] # used to lower memory requirements of model # inten
+write_all_reports = False  # if True, write reports for naive watersheds, riparian, etc. If False just write report for trained sheds (1 report)
 
-model_a = {
-    'model_name': 'bin_deep_massagedDHM_v2',
+generic_model = {
+    'model_name': None,
 
     'training_perc': 0.8,  # percent of data to train on
     'min_split': 0.001,  # minimum percentage of samples that a leaf must have to exist
     'drop_cols': [],
     # cols not to use as feature classes. note that dem and dsm are already not included (and others depending on how DB was assembled)
     'class_col': 'classification',  # column that contains classification data
-    'training_hucs': ['180500020905',
-                      '070801050901',
-                      '130202090102',
-                      '080102040304',
-                      '010500021301',
-                      '030902040303',
-                      '140801040103'
+    'training_hucs': [
                       ],  # what HUCS to train on. If None, use all available. Otherwise input is list of strings
 
     'reclassing': {
@@ -58,48 +53,31 @@ model_a = {
     'max_depth': 20,  # max levels to decision tree
     'notes':
         """
-        Standard binary classification
+        Standard binary classification for individual sheds, including intensity
         """
 }
 
+models = []
+#010500021301 done
+numbers = ['030902040303',
+            '070801050901',
+            '080102040304',
+            '130202090102',
+            '140801040103',
+            '180500020905',
+            '080902030201',
+            '100301011309',
+            '102901110304']
 
-model_b = {
-    'model_name': 'tern_deep',
 
-    'training_perc': 0.8,  # percent of data to train on
-    'min_split': 0.001,  # minimum percentage of samples that a leaf must have to exist
-    'drop_cols': [],
-    # cols not to use as feature classes. note that dem and dsm are already not included (and others depending on how DB was assembled)
-    'class_col': 'classification',  # column that contains classification data
-    'training_hucs': ['180500020905',
-                      '070801050901',
-                      '130202090102',
-                      '080102040304',
-                      '010500021301',
-                      '030902040303',
-                      '140801040103'
-                      ],  # what HUCS to train on. If None, use all available. Otherwise input is list of strings
+for num in numbers:
+    gm = generic_model.copy()
+    gm['training_hucs'] = [num]
+    gm['model_name'] = f'{num}_bin_deep_individual_with_intensity'
+    models.append(gm)
 
-    'reclassing': {
-        'trees': ['fo', 'li', 'in'],
-        'rough': ['rv', 'we', 'ue']
-    },  # classes to cram together. If None, take classes as they are
 
-    'ignore': [],  # classes to exclude from the analysis entirely
-
-    'riparian_distance': 30,  # distance from a stream to be considered riparian
-
-    'class_weighting': 'balanced',
-    # None for proportional, 'balanced' to make inversely proportional to class frequency
-    'criterion': 'gini',  # entropy or gini
-    'max_depth': 20,  # max levels to decision tree
-    'notes':
-        """
-        Standard ternary classification
-        """
-}
-
-model_param_list = [model_a]
+model_param_list = [mod for mod in models]
 
 ####
 
@@ -297,91 +275,97 @@ for mod in model_param_list:
     rep_folder = os.path.join(model_folder, 'reports')
     os.mkdir(rep_folder)
 
+    del df
+
     print(f'(aggregate trained report)')
     create_predictions_report(y_test=y_test, y_pred=y_pred,
                               class_names=class_names,
                               out_loc=os.path.join(rep_folder, f'aggregate_report_{model_name}_TRAINED.xlsx'),
                               wts=x_test['weight'])
 
-    dist_mask_upper = df.loc[df['huc12'].isin(training_hucs)]['dstnc'] > 0
-    dist_mask_lower = df.loc[df['huc12'].isin(training_hucs)]['dstnc'] <= riparian_distance
-    dist_mask = [a and b for a, b in zip(dist_mask_upper, dist_mask_lower)]
-    trained_frac_in_buffer = sum(dist_mask) / len(dist_mask)
-    print(f'{round(trained_frac_in_buffer*100, 2)}% within riparian buffer')
+    if write_all_reports:
+        dist_mask_upper = df.loc[df['huc12'].isin(training_hucs)]['dstnc'] > 0
+        dist_mask_lower = df.loc[df['huc12'].isin(training_hucs)]['dstnc'] <= riparian_distance
+        dist_mask = [a and b for a, b in zip(dist_mask_upper, dist_mask_lower)]
+        trained_frac_in_buffer = sum(dist_mask) / len(dist_mask)
+        print(f'{round(trained_frac_in_buffer*100, 2)}% within riparian buffer')
 
-    sub_y_test_riparian = [c for c, d in zip(y_test, dist_mask) if d]
-    sub_y_pred_riparian = [p for p, d in zip(y_pred, dist_mask) if d]
-    weight_riparian = [p for p, d in zip(x_test['weight'], dist_mask) if d]
+        sub_y_test_riparian = [c for c, d in zip(y_test, dist_mask) if d]
+        sub_y_pred_riparian = [p for p, d in zip(y_pred, dist_mask) if d]
+        weight_riparian = [p for p, d in zip(x_test['weight'], dist_mask) if d]
 
-    create_predictions_report(y_test=sub_y_test_riparian, y_pred=sub_y_pred_riparian,
-                              class_names=class_names,
-                              out_loc=os.path.join(rep_folder, f'aggregate_report_{model_name}_TRAINED_RIPARIAN.xlsx'),
-                              wts=weight_riparian)
+        create_predictions_report(y_test=sub_y_test_riparian, y_pred=sub_y_pred_riparian,
+                                  class_names=class_names,
+                                  out_loc=os.path.join(rep_folder, f'aggregate_report_{model_name}_TRAINED_RIPARIAN.xlsx'),
+                                  wts=weight_riparian)
 
-    print(f'(aggregate naive report)')
-    create_predictions_report(y_test=y_test_naive, y_pred=y_pred_naive,
-                              class_names=class_names,
-                              out_loc=os.path.join(rep_folder, f'aggregate_report_{model_name}_NAIVE.xlsx'),
-                              wts=x_test_naive['weight'])
+        print(f'(aggregate naive report)')
+        create_predictions_report(y_test=y_test_naive, y_pred=y_pred_naive,
+                                  class_names=class_names,
+                                  out_loc=os.path.join(rep_folder, f'aggregate_report_{model_name}_NAIVE.xlsx'),
+                                  wts=x_test_naive['weight'])
 
-    dist_mask_upper = df.loc[df['huc12'].isin(naive_hucs)]['dstnc'] > 0
-    dist_mask_lower = df.loc[df['huc12'].isin(naive_hucs)]['dstnc'] <= riparian_distance
-    dist_mask = [a and b for a, b in zip(dist_mask_upper, dist_mask_lower)]
-    naive_frac_in_buffer = sum(dist_mask) / len(dist_mask)
-    print(f'{round(naive_frac_in_buffer*100, 2)}% within riparian buffer')
+        dist_mask_upper = df.loc[df['huc12'].isin(naive_hucs)]['dstnc'] > 0
+        dist_mask_lower = df.loc[df['huc12'].isin(naive_hucs)]['dstnc'] <= riparian_distance
+        dist_mask = [a and b for a, b in zip(dist_mask_upper, dist_mask_lower)]
+        naive_frac_in_buffer = sum(dist_mask) / len(dist_mask)
+        print(f'{round(naive_frac_in_buffer*100, 2)}% within riparian buffer')
 
-    sub_y_test_riparian = [c for c, d in zip(y_test_naive, dist_mask) if d]
-    sub_y_pred_riparian = [p for p, d in zip(y_pred_naive, dist_mask) if d]
-    weight_riparian = [p for p, d in zip(x_test_naive['weight'], dist_mask) if d]
+        sub_y_test_riparian = [c for c, d in zip(y_test_naive, dist_mask) if d]
+        sub_y_pred_riparian = [p for p, d in zip(y_pred_naive, dist_mask) if d]
+        weight_riparian = [p for p, d in zip(x_test_naive['weight'], dist_mask) if d]
 
-    create_predictions_report(y_test=sub_y_test_riparian, y_pred=sub_y_pred_riparian,
-                              class_names=class_names,
-                              out_loc=os.path.join(rep_folder, f'aggregate_report_{model_name}_NAIVE_RIPARIAN.xlsx'),
-                              wts=weight_riparian)
+        create_predictions_report(y_test=sub_y_test_riparian, y_pred=sub_y_pred_riparian,
+                                  class_names=class_names,
+                                  out_loc=os.path.join(rep_folder, f'aggregate_report_{model_name}_NAIVE_RIPARIAN.xlsx'),
+                                  wts=weight_riparian)
 
-    del df
+        for shed in present_tables:
 
-    for shed in present_tables:
+            if shed in naive_hucs:
+                add_name = 'NAIVE'
+                ex = x_test_naive
+                wi_test = y_test_naive
+                wi_pred = y_pred_naive
+            elif shed in training_hucs:
+                add_name = 'TRAINED'
+                ex = x_test
+                wi_test = y_test
+                wi_pred = y_pred
+            print(f'({shed} report) - {add_name}')
 
-        if shed in naive_hucs:
-            add_name = 'NAIVE'
-            ex = x_test_naive
-            wi_test = y_test_naive
-            wi_pred = y_pred_naive
-        elif shed in training_hucs:
-            add_name = 'TRAINED'
-            ex = x_test
-            wi_test = y_test
-            wi_pred = y_pred
-        print(f'({shed} report) - {add_name}')
+            huc_mask = ex['huc12'] == shed
+            dist_mask_upper = ex['dstnc'] > 0
+            dist_mask_lower = ex['dstnc'] <= riparian_distance
+            dist_mask = [a and b for a,b in zip(dist_mask_upper, dist_mask_lower)]
 
-        huc_mask = ex['huc12'] == shed
-        dist_mask_upper = ex['dstnc'] > 0
-        dist_mask_lower = ex['dstnc'] <= riparian_distance
-        dist_mask = [a and b for a,b in zip(dist_mask_upper, dist_mask_lower)]
+            sub_y_test = [c for c,m in zip(wi_test, huc_mask) if m]
+            sub_y_pred = [p for p,m in zip(wi_pred, huc_mask) if m]
 
-        sub_y_test = [c for c,m in zip(wi_test, huc_mask) if m]
-        sub_y_pred = [p for p,m in zip(wi_pred, huc_mask) if m]
+            try:
+                create_predictions_report(y_test=sub_y_test, y_pred=sub_y_pred,
+                                          class_names=class_names,
+                                          out_loc=os.path.join(rep_folder, f'{shed}_report_{model_name}_{add_name}.xlsx'),
+                                          wts=None)
+            except AssertionError:
+                print(f'Failed to generate report {shed}_report_{model_name}_{add_name}.xlsx')
 
-        try:
-            create_predictions_report(y_test=sub_y_test, y_pred=sub_y_pred,
-                                      class_names=class_names,
-                                      out_loc=os.path.join(rep_folder, f'{shed}_report_{model_name}_{add_name}.xlsx'),
-                                      wts=None)
-        except AssertionError:
-            print(f'Failed to generate report {shed}_report_{model_name}_{add_name}.xlsx')
+            sub_y_test_riparian = [c for c, m, d in zip(wi_test, huc_mask, dist_mask) if m and d]
+            sub_y_pred_riparian = [p for p, m, d in zip(wi_pred, huc_mask, dist_mask) if m and d]
 
-        sub_y_test_riparian = [c for c, m, d in zip(wi_test, huc_mask, dist_mask) if m and d]
-        sub_y_pred_riparian = [p for p, m, d in zip(wi_pred, huc_mask, dist_mask) if m and d]
+            try:
+                create_predictions_report(y_test=sub_y_test_riparian, y_pred=sub_y_pred_riparian,
+                                          class_names=class_names,
+                                          out_loc=os.path.join(rep_folder, f'{shed}_report_{model_name}_{add_name}_RIPARIAN.xlsx'),
+                                          wts=None)
+            except AssertionError:
+                print(f'Failed to generate report {shed}_report_{model_name}_{add_name}_RIPARIAN.xlsx'
+                      f'\n This may be due to a lack of riparian cells')
 
-        try:
-            create_predictions_report(y_test=sub_y_test_riparian, y_pred=sub_y_pred_riparian,
-                                      class_names=class_names,
-                                      out_loc=os.path.join(rep_folder, f'{shed}_report_{model_name}_{add_name}_RIPARIAN.xlsx'),
-                                      wts=None)
-        except AssertionError:
-            print(f'Failed to generate report {shed}_report_{model_name}_{add_name}_RIPARIAN.xlsx'
-                  f'\n This may be due to a lack of riparian cells')
+    else:
+
+        trained_frac_in_buffer = -1
+        naive_frac_in_buffer = -1
 
     print('PACKAGING MODEL')
 
@@ -428,6 +412,10 @@ for mod in model_param_list:
 
     train_time = time.time()
     train_elap = train_time - train_start
+
+    del x_train, x_test, y_train, y_test
+    del x_train_naive, x_test_naive, y_train_naive, y_test_naive
+
     print(f'{model_name} trained. Elapsed time: {round(train_elap / 60, 2)} minutes')
 
 final_time = time.time()

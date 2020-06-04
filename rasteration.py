@@ -506,6 +506,7 @@ def big_derivs(folder):
     else:
         print(f'{nreturnsroughnessname} exists. Skipping generation....')
 
+    """
     if not os.path.exists(dhmenergyname):
         # open raster and choose band to find min, max
         raster = dhmname
@@ -521,6 +522,7 @@ def big_derivs(folder):
         # previous max height of 12m and bins of 0.25m. previous 2x 32m and bins of 0.5m
     else:
         print(f'{dhmenergyname} exists. Skipping generation....')
+    """
 
     if not os.path.exists(dmsmlaplacename):
         generate_laplace(dsmname, dmsmlaplacename) # generate textures using dhm, max height of max(dhm) and bins of 0.5m

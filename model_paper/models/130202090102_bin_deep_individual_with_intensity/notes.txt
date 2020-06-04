@@ -1,0 +1,3 @@
+
+        Standard binary classification for individual sheds, including intensity
+        

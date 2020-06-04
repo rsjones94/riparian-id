@@ -1,0 +1,8 @@
+F:\gen_model\study_areas\missouri_sub\study_LiDAR\products\mosaic\demsl.tif
+F:\gen_model\study_areas\missouri_sub\study_LiDAR\products\mosaic\dsmlp.tif
+F:\gen_model\study_areas\missouri_sub\study_LiDAR\products\mosaic\dsmro.tif
+F:\gen_model\study_areas\missouri_sub\study_LiDAR\products\mosaic\dsmsl.tif
+F:\gen_model\study_areas\missouri_sub\study_LiDAR\products\mosaic\fidhl.tif
+F:\gen_model\study_areas\missouri_sub\study_LiDAR\products\mosaic\fidhm.tif
+F:\gen_model\study_areas\missouri_sub\study_LiDAR\products\mosaic\fidhr.tif
+F:\gen_model\study_areas\missouri_sub\study_LiDAR\products\mosaic\fidhs.tif

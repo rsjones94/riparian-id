@@ -1,0 +1,92 @@
+<VRTDataset rasterXSize="1524" rasterYSize="1524">
+  <SRS>PROJCS["NAD83 / Missouri Central",GEOGCS["NAD83",DATUM["North_American_Datum_1983",SPHEROID["GRS 1980",6378137,298.257222101,AUTHORITY["EPSG","7019"]],TOWGS84[0,0,0,0,0,0,0],AUTHORITY["EPSG","6269"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4269"]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",35.83333333333334],PARAMETER["central_meridian",-92.5],PARAMETER["scale_factor",0.999933333],PARAMETER["false_easting",500000],PARAMETER["false_northing",0],UNIT["metre",1,AUTHORITY["EPSG","9001"]],AXIS["X",EAST],AXIS["Y",NORTH],AUTHORITY["EPSG","26997"]]</SRS>
+  <GeoTransform>  5.4559200000000000e+05,  1.0000000000000000e+00,  0.0000000000000000e+00,  2.8041600000000000e+05,  0.0000000000000000e+00, -1.0000000000000000e+00</GeoTransform>
+  <VRTRasterBand dataType="Float32" band="1">
+    <NoDataValue>-9999</NoDataValue>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">F:\gen_model\study_areas\missouri_sub\study_LiDAR\products\mosaic\demsl.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="1524" RasterYSize="1524" DataType="Float32" BlockXSize="1524" BlockYSize="1" />
+      <SrcRect xOff="0" yOff="0" xSize="1524" ySize="1524" />
+      <DstRect xOff="0" yOff="0" xSize="1524" ySize="1524" />
+      <NODATA>-9999</NODATA>
+    </ComplexSource>
+  </VRTRasterBand>
+  <VRTRasterBand dataType="Float32" band="2">
+    <NoDataValue>-9999</NoDataValue>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">F:\gen_model\study_areas\missouri_sub\study_LiDAR\products\mosaic\dsmlp.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="1524" RasterYSize="1524" DataType="Float32" BlockXSize="1524" BlockYSize="1" />
+      <SrcRect xOff="0" yOff="0" xSize="1524" ySize="1524" />
+      <DstRect xOff="0" yOff="0" xSize="1524" ySize="1524" />
+      <NODATA>-9999</NODATA>
+    </ComplexSource>
+  </VRTRasterBand>
+  <VRTRasterBand dataType="Float32" band="3">
+    <NoDataValue>-9999</NoDataValue>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">F:\gen_model\study_areas\missouri_sub\study_LiDAR\products\mosaic\dsmro.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="1524" RasterYSize="1524" DataType="Float32" BlockXSize="1524" BlockYSize="1" />
+      <SrcRect xOff="0" yOff="0" xSize="1524" ySize="1524" />
+      <DstRect xOff="0" yOff="0" xSize="1524" ySize="1524" />
+      <NODATA>-9999</NODATA>
+    </ComplexSource>
+  </VRTRasterBand>
+  <VRTRasterBand dataType="Float32" band="4">
+    <NoDataValue>-9999</NoDataValue>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">F:\gen_model\study_areas\missouri_sub\study_LiDAR\products\mosaic\dsmsl.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="1524" RasterYSize="1524" DataType="Float32" BlockXSize="1524" BlockYSize="1" />
+      <SrcRect xOff="0" yOff="0" xSize="1524" ySize="1524" />
+      <DstRect xOff="0" yOff="0" xSize="1524" ySize="1524" />
+      <NODATA>-9999</NODATA>
+    </ComplexSource>
+  </VRTRasterBand>
+  <VRTRasterBand dataType="Float32" band="5">
+    <NoDataValue>-9999</NoDataValue>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">F:\gen_model\study_areas\missouri_sub\study_LiDAR\products\mosaic\fidhl.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="1524" RasterYSize="1524" DataType="Float32" BlockXSize="1524" BlockYSize="1" />
+      <SrcRect xOff="0" yOff="0" xSize="1524" ySize="1524" />
+      <DstRect xOff="0" yOff="0" xSize="1524" ySize="1524" />
+      <NODATA>-9999</NODATA>
+    </ComplexSource>
+  </VRTRasterBand>
+  <VRTRasterBand dataType="Float32" band="6">
+    <NoDataValue>-9999</NoDataValue>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">F:\gen_model\study_areas\missouri_sub\study_LiDAR\products\mosaic\fidhm.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="1524" RasterYSize="1524" DataType="Float32" BlockXSize="1524" BlockYSize="1" />
+      <SrcRect xOff="0" yOff="0" xSize="1524" ySize="1524" />
+      <DstRect xOff="0" yOff="0" xSize="1524" ySize="1524" />
+      <NODATA>-9999</NODATA>
+    </ComplexSource>
+  </VRTRasterBand>
+  <VRTRasterBand dataType="Float32" band="7">
+    <NoDataValue>-9999</NoDataValue>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">F:\gen_model\study_areas\missouri_sub\study_LiDAR\products\mosaic\fidhr.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="1524" RasterYSize="1524" DataType="Float32" BlockXSize="1524" BlockYSize="1" />
+      <SrcRect xOff="0" yOff="0" xSize="1524" ySize="1524" />
+      <DstRect xOff="0" yOff="0" xSize="1524" ySize="1524" />
+      <NODATA>-9999</NODATA>
+    </ComplexSource>
+  </VRTRasterBand>
+  <VRTRasterBand dataType="Float32" band="8">
+    <NoDataValue>-9999</NoDataValue>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">F:\gen_model\study_areas\missouri_sub\study_LiDAR\products\mosaic\fidhs.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="1524" RasterYSize="1524" DataType="Float32" BlockXSize="1524" BlockYSize="1" />
+      <SrcRect xOff="0" yOff="0" xSize="1524" ySize="1524" />
+      <DstRect xOff="0" yOff="0" xSize="1524" ySize="1524" />
+      <NODATA>-9999</NODATA>
+    </ComplexSource>
+  </VRTRasterBand>
+</VRTDataset>

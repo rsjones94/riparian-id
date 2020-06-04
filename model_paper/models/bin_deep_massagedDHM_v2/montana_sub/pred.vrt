@@ -1,0 +1,92 @@
+<VRTDataset rasterXSize="1500" rasterYSize="1500">
+  <SRS>PROJCS["NAD83(HARN) / Montana",GEOGCS["NAD83(HARN)",DATUM["NAD83_High_Accuracy_Reference_Network",SPHEROID["GRS 1980",6378137,298.257222101,AUTHORITY["EPSG","7019"]],TOWGS84[0,0,0,0,0,0,0],AUTHORITY["EPSG","6152"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4152"]],PROJECTION["Lambert_Conformal_Conic_2SP"],PARAMETER["standard_parallel_1",49],PARAMETER["standard_parallel_2",45],PARAMETER["latitude_of_origin",44.25],PARAMETER["central_meridian",-109.5],PARAMETER["false_easting",600000],PARAMETER["false_northing",0],UNIT["metre",1,AUTHORITY["EPSG","9001"]],AXIS["X",EAST],AXIS["Y",NORTH],AUTHORITY["EPSG","2818"]]</SRS>
+  <GeoTransform>  3.9450000000000000e+05,  1.0000000000000000e+00,  0.0000000000000000e+00,  2.6249998999999999e+05,  0.0000000000000000e+00, -1.0000000000000000e+00</GeoTransform>
+  <VRTRasterBand dataType="Float32" band="1">
+    <NoDataValue>-9999</NoDataValue>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">F:\gen_model\study_areas\montana_sub\study_LiDAR\products\mosaic\demsl.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="1500" RasterYSize="1500" DataType="Float32" BlockXSize="1500" BlockYSize="1" />
+      <SrcRect xOff="0" yOff="0" xSize="1500" ySize="1500" />
+      <DstRect xOff="0" yOff="0" xSize="1500" ySize="1500" />
+      <NODATA>-9999</NODATA>
+    </ComplexSource>
+  </VRTRasterBand>
+  <VRTRasterBand dataType="Float32" band="2">
+    <NoDataValue>-9999</NoDataValue>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">F:\gen_model\study_areas\montana_sub\study_LiDAR\products\mosaic\dsmlp.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="1500" RasterYSize="1500" DataType="Float32" BlockXSize="1500" BlockYSize="1" />
+      <SrcRect xOff="0" yOff="0" xSize="1500" ySize="1500" />
+      <DstRect xOff="0" yOff="0" xSize="1500" ySize="1500" />
+      <NODATA>-9999</NODATA>
+    </ComplexSource>
+  </VRTRasterBand>
+  <VRTRasterBand dataType="Float32" band="3">
+    <NoDataValue>-9999</NoDataValue>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">F:\gen_model\study_areas\montana_sub\study_LiDAR\products\mosaic\dsmro.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="1500" RasterYSize="1500" DataType="Float32" BlockXSize="1500" BlockYSize="1" />
+      <SrcRect xOff="0" yOff="0" xSize="1500" ySize="1500" />
+      <DstRect xOff="0" yOff="0" xSize="1500" ySize="1500" />
+      <NODATA>-9999</NODATA>
+    </ComplexSource>
+  </VRTRasterBand>
+  <VRTRasterBand dataType="Float32" band="4">
+    <NoDataValue>-9999</NoDataValue>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">F:\gen_model\study_areas\montana_sub\study_LiDAR\products\mosaic\dsmsl.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="1500" RasterYSize="1500" DataType="Float32" BlockXSize="1500" BlockYSize="1" />
+      <SrcRect xOff="0" yOff="0" xSize="1500" ySize="1500" />
+      <DstRect xOff="0" yOff="0" xSize="1500" ySize="1500" />
+      <NODATA>-9999</NODATA>
+    </ComplexSource>
+  </VRTRasterBand>
+  <VRTRasterBand dataType="Float32" band="5">
+    <NoDataValue>-9999</NoDataValue>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">F:\gen_model\study_areas\montana_sub\study_LiDAR\products\mosaic\fidhl.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="1500" RasterYSize="1500" DataType="Float32" BlockXSize="1500" BlockYSize="1" />
+      <SrcRect xOff="0" yOff="0" xSize="1500" ySize="1500" />
+      <DstRect xOff="0" yOff="0" xSize="1500" ySize="1500" />
+      <NODATA>-9999</NODATA>
+    </ComplexSource>
+  </VRTRasterBand>
+  <VRTRasterBand dataType="Float32" band="6">
+    <NoDataValue>-9999</NoDataValue>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">F:\gen_model\study_areas\montana_sub\study_LiDAR\products\mosaic\fidhm.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="1500" RasterYSize="1500" DataType="Float32" BlockXSize="1500" BlockYSize="1" />
+      <SrcRect xOff="0" yOff="0" xSize="1500" ySize="1500" />
+      <DstRect xOff="0" yOff="0" xSize="1500" ySize="1500" />
+      <NODATA>-9999</NODATA>
+    </ComplexSource>
+  </VRTRasterBand>
+  <VRTRasterBand dataType="Float32" band="7">
+    <NoDataValue>-9999</NoDataValue>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">F:\gen_model\study_areas\montana_sub\study_LiDAR\products\mosaic\fidhr.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="1500" RasterYSize="1500" DataType="Float32" BlockXSize="1500" BlockYSize="1" />
+      <SrcRect xOff="0" yOff="0" xSize="1500" ySize="1500" />
+      <DstRect xOff="0" yOff="0" xSize="1500" ySize="1500" />
+      <NODATA>-9999</NODATA>
+    </ComplexSource>
+  </VRTRasterBand>
+  <VRTRasterBand dataType="Float32" band="8">
+    <NoDataValue>-9999</NoDataValue>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">F:\gen_model\study_areas\montana_sub\study_LiDAR\products\mosaic\fidhs.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="1500" RasterYSize="1500" DataType="Float32" BlockXSize="1500" BlockYSize="1" />
+      <SrcRect xOff="0" yOff="0" xSize="1500" ySize="1500" />
+      <DstRect xOff="0" yOff="0" xSize="1500" ySize="1500" />
+      <NODATA>-9999</NODATA>
+    </ComplexSource>
+  </VRTRasterBand>
+</VRTDataset>

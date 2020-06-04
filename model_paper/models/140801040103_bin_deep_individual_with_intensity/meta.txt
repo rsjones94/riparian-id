@@ -1,0 +1,14 @@
+        Decision Tree Classifier, built with sklearn v0.21.2, Python v3.7.3
+            Trained on 140801040103
+            Naive watersheds: 010500021301, 030902040303, 070801050901, 080102040304, 080902030201, 100301011309, 102901110304, 130202090102, 180500020905
+            Weighting type is balanced and splitting criterion is gini. Max tree depth: 20
+            Training percent: 80.0%
+            Minimum split: 0.1%
+            Feature columns: demsl, dsmlp, dsmro, dsmsl, fidhl, fidhm, fidhr, fidhs, inten
+            Contributions: {'demsl': '1.63%', 'dsmlp': '0.84%', 'dsmro': '0.63%', 'dsmsl': '0.0%', 'fidhl': '0.0%', 'fidhm': '0.0%', 'fidhr': '96.37%', 'fidhs': '0.0%', 'inten': '0.53%'}
+            Reclassing: {'trees': ['fo', 'li', 'in'], 'other': 'ALL OTHERS'}
+            Mapping: {1: 'trees', 2: 'other'}
+            Ignored classes: []
+            Riparian distance: 30 (-100% of trained within buffer. -100% of naive within buffer)
+            % of data retained: All
+            
