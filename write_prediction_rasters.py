@@ -10,11 +10,11 @@ from generate_full_predictions import predict_cover
 #hucs = ['010500021301', '030902040303', '070801050901', '080102040304', '130202090102', '140801040103', '180500020905']
 #hucs = ['custom2']
 #hucs = ['missouri_sub', 'nawlins_sub', 'montana_sub']
-hucs = ['130202090102']
+hucs = ['maine_sub']
 models = ['bin_deep_massagedDHM_v2']
 
 ###
-par = r'F:\gen_model'
+par = r'E:\gen_model'
 
 sas = pd.read_excel(os.path.join(par, r'study_areas.xlsx'), dtype={'HUC12': object})
 sas = sas.set_index('HUC12')

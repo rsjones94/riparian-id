@@ -13,7 +13,7 @@ ovr_tiles = False
 ovr_copy = False
 ovr_d2strm = True
 
-par = r'F:\gen_model'
+par = r'E:\gen_model'
 sas = pd.read_excel(os.path.join(par, r'study_areas.xlsx'), dtype={'HUC12': object})
 sas = sas.set_index('HUC12')
 
@@ -31,7 +31,7 @@ st = time.time()
 for i, sub in enumerate(folders):
     print(f'\n\n!!!!!!!!!!!!!!!\n Working on {sub}, {i + 1} of {total_n} \n!!!!!!!!!!!!!!!\n\n')
 
-    if sub != 'missouri_sub':
+    if sub != 'maine_sub':
         continue
 
     working = os.path.join(par, sub)
