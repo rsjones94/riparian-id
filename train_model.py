@@ -19,15 +19,53 @@ import numpy as np
 from misc_tools import invert_dict, prune_duplicate_leaves
 from generate_full_predictions import create_predictions_report
 
-par = r'F:\gen_model'
-training_folder = r'F:\gen_model\training_sets'
-models_folder = r'F:\gen_model\models'
+par = r'E:\gen_model'
+training_folder = r'E:\gen_model\training_sets'
+models_folder = r'E:\gen_model\models'
 n_rand = None  # number of samples from each table. None for all samples. only one of n_rand and keep_frac should not be None
 keep_frac = None  # fraction of data from each HUC to keep. If None, keep all
-exclude_entirely = ['cellno', 'demro', 'dhmco', 'dhmcp', 'dhmcs', 'dhmeg', 'dhmcp',
-                    'dhmet', 'dhmhc', 'dhmid', 'dhmin', 'nrero', 'nretu', 'dhmro', 'dhmsl', 'dhmro', 'dighe'] # used to lower memory requirements of model # inten
-write_all_reports = False  # if True, write reports for naive watersheds, riparian, etc. If False just write report for trained sheds (1 report)
+#exclude_entirely = ['cellno', 'demro', 'dhmco', 'dhmcp', 'dhmcs', 'dhmeg', 'dhmcp',
+#                    'dhmet', 'dhmhc', 'dhmid', 'dhmin', 'nrero', 'nretu', 'dhmro', 'dhmsl', 'dhmro', 'dighe'] # used to lower memory requirements of model # inten
 
+exclude_entirely = ['cellno', 'demro', 'nrero', 'nretu', 'dhmro', 'dhmsl', 'dhmro', 'dighe', 'inten'] # used to lower memory requirements of model # inten
+write_all_reports = True  # if True, write reports for naive watersheds, riparian, etc. If False just write report for trained sheds (1 report)
+
+model_a = {
+    'model_name': 'bin_deep_massagedDHM_v2_WITH_HARALICKS',
+
+    'training_perc': 0.8,  # percent of data to train on
+    'min_split': 0.001,  # minimum percentage of samples that a leaf must have to exist
+    'drop_cols': [],
+    # cols not to use as feature classes. note that dem and dsm are already not included (and others depending on how DB was assembled)
+    'class_col': 'classification',  # column that contains classification data
+    'training_hucs': ['010500021301',
+                      '030902040303',
+                      '070801050901',
+                      '080102040304',
+                      '130202090102',
+                      '140801040103',
+                      '180500020905'
+                      ],  # what HUCS to train on. If None, use all available. Otherwise input is list of strings
+
+    'reclassing': {
+        'trees': ['fo', 'li', 'in']
+    },  # classes to cram together. If None, take classes as they are
+
+    'ignore': [],  # classes to exclude from the analysis entirely
+
+    'riparian_distance': 30,  # distance from a stream to be considered riparian
+
+    'class_weighting': 'balanced',
+    # None for proportional, 'balanced' to make inversely proportional to class frequency
+    'criterion': 'gini',  # entropy or gini
+    'max_depth': 20,  # max levels to decision tree
+    'notes':
+        """
+        Standard binary classification for individual sheds
+        """
+}
+
+'''
 generic_model = {
     'model_name': None,
 
@@ -78,6 +116,9 @@ for num in numbers:
 
 
 model_param_list = [mod for mod in models]
+'''
+
+model_param_list = [model_a]
 
 ####
 
