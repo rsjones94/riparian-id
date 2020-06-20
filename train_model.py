@@ -30,24 +30,24 @@ exclude_entirely = ['cellno', 'demro', 'dhmco', 'dhmcp', 'dhmcs', 'dhmeg', 'dhmc
 #exclude_entirely = ['cellno', 'demro', 'nrero', 'nretu', 'dhmro', 'dhmsl', 'dhmro', 'dighe', 'inten'] # used to lower memory requirements of model # inten
 write_all_reports = True  # if True, write reports for naive watersheds, riparian, etc. If False just write report for trained sheds (1 report)
 
-model_a = {
-    'model_name': 'bin_deep_massagedDHM_maine_aline',
-
-    'training_perc': 0.8,  # percent of data to train on
-    'min_split': 0.001,  # minimum percentage of samples that a leaf must have to exist
-    'drop_cols': [],
-    # cols not to use as feature classes. note that dem and dsm are already not included (and others depending on how DB was assembled)
-    'class_col': 'classification',  # column that contains classification data
-    'training_hucs': ['010500021301'],
-                      """
+"""
                       '030902040303',
                       '070801050901',
                       '080102040304',
                       '130202090102',
                       '140801040103',
                       '180500020905'
-                      ],  # what HUCS to train on. If None, use all available. Otherwise input is list of strings
-                      """
+"""
+
+model_a = {
+    'model_name': 'bin_deep_massagedDHM_maine_alone',
+
+    'training_perc': 0.8,  # percent of data to train on
+    'min_split': 0.001,  # minimum percentage of samples that a leaf must have to exist
+    'drop_cols': [],
+    # cols not to use as feature classes. note that dem and dsm are already not included (and others depending on how DB was assembled)
+    'class_col': 'classification',  # column that contains classification data
+    'training_hucs': ['010500021301'], # what HUCS to train on. If None, use all available. Otherwise input is list of strings
 
     'reclassing': {
         'trees': ['fo', 'li', 'in']
