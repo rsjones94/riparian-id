@@ -316,7 +316,8 @@ for mod in model_param_list:
     rep_folder = os.path.join(model_folder, 'reports')
     os.mkdir(rep_folder)
 
-    del df
+    if not write_all_reports:
+        del df
 
     print(f'(aggregate trained report)')
     create_predictions_report(y_test=y_test, y_pred=y_pred,
